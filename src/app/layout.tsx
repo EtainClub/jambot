@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
+import { ServiceWorker } from "@/components/ServiceWorker";
 import { AuthProvider } from "@/lib/firebase/auth";
 
 const plexMono = IBM_Plex_Mono({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           본문으로 건너뛰기
         </a>
         <AuthProvider>{children}</AuthProvider>
+        <ServiceWorker />
       </body>
     </html>
   );
