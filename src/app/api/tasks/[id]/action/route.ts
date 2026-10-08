@@ -13,6 +13,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("posted"), postedUrl: z.string().max(500), comment: z.string().max(2000) }),
   z.object({ type: z.literal("skip"), reason: z.string().max(500) }),
   z.object({ type: z.literal("requeue") }),
+  z.object({ type: z.literal("reply"), text: z.string().max(1000) }),
 ]);
 
 export async function POST(request: Request, ctx: RouteContext<"/api/tasks/[id]/action">) {

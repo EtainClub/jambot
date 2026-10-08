@@ -1,4 +1,4 @@
-# 잼통 근거 안내 (insta-factbot)
+# 잼통 신고 센터 (insta-factbot)
 
 인스타그램의 정부 정책 주장을 [잼통](https://jamtong.kr) 근거와 대조하고, 여러 운영자가 근거 안내 댓글을
 나눠 게시하는 웹앱입니다. 설계는 `docs/design.md`, 잼통에 먼저 채울 자료는 `docs/jamtong-content-gaps.md`에 있습니다.
@@ -8,6 +8,18 @@
 - **판정 근거는 잼통뿐입니다.** 모델은 잼통 `factbase.json`에서 뽑은 후보 안에서만 앵커를 고르고, 서버가 그 앵커를 다시 확인합니다.
 - **잼통에 없으면 판정하지 않습니다.** `out_of_scope`·`insufficient`는 자료 공백으로 쌓이고, 잼통에 등록·배포되면 자동으로 다시 판정합니다.
 - **사람이 게시합니다.** 댓글 복사와 게시 완료를 구분하며, 게시 완료에는 실제 댓글 주소가 필요합니다.
+
+## 사용자 단계
+
+| 단계 | 할 수 있는 것 |
+|---|---|
+| 익명 (처음 들어오면 자동) | 공개 기록 둘러보기 |
+| 제보자 `contributor` (구글 연결) | 제보, 내 기록(제보·처리 결과·운영자 답변), 내 정보 관리(열람·이름 변경·탈퇴) |
+| 검토자 `reviewer` | 작업 수락, 댓글 편집·게시, 제보자 답변, 건너뛰기 |
+| 운영 관리자 `moderator` | + 남의 작업 반납, 대기열 복귀, 재판정, 자료 공백 요청 |
+| 관리자 `admin` | + 운영자 지정·해제 (`/members`) |
+
+제보자에게는 사람이 확인하기 전의 판정을 보여 주지 않습니다. 단계(대조 중·확인 중·자료 대기·완료)만 알리고, 끝난 뒤에 판정과 게시한 댓글을 엽니다. 운영자 이름도 내보내지 않습니다.
 
 ## 구조
 
@@ -42,11 +54,13 @@ cd ~/devel-src/jamtong && pnpm dev          # :3000
 pnpm dev -p 3100
 ```
 
-운영자 등록: 구글로 한 번 로그인한 뒤
+첫 관리자 지정 (이후로는 `/members` 화면에서):
 
 ```bash
-pnpm grant-member you@example.com owner
+pnpm grant-member you@example.com admin
 ```
+
+구글을 아직 연결하지 않은 이메일이면 초대로 적어 두고, 그 사람이 연결할 때 반영합니다.
 
 판정 경로만 시험하기 (Firebase 불필요, 모델 비용 발생):
 
@@ -56,7 +70,8 @@ FACTBASE_URL=http://localhost:3000/factbase.json pnpm smoke "게시물 글"
 
 ## Firebase 설정 체크리스트
 
-1. Authentication → Google 로그인 사용, 승인된 도메인에 배포 도메인 추가
+1. Authentication → **익명** 로그인과 **Google** 로그인 사용, 승인된 도메인에 배포 도메인 추가
+   - 방문자마다 익명 계정이 생깁니다. Authentication 설정의 익명 계정 자동 삭제(30일)를 켜 두기를 권합니다
 2. Firestore 생성 → `firebase deploy --only firestore` (규칙 + 인덱스)
 3. Storage 생성 → `firebase deploy --only storage`
 4. App Hosting 백엔드 생성 → `apphosting.yaml`의 `<콘솔 값>` 채우기, Secret Manager에 `ANTHROPIC_API_KEY`, `FACTBOT_CRON_SECRET`

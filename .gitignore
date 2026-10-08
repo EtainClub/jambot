@@ -18,3 +18,5 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+
+firebase-debug.log

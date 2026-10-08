@@ -1,19 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Button, ErrorLine } from "@/components/ui";
-
-const STAGE: Record<string, string> = {
-  none: "아직 접수되지 않은 게시물입니다.",
-  checking: "근거와 대조하고 있습니다.",
-  reviewing: "운영자가 확인하고 있습니다.",
-  done: "처리가 끝났습니다.",
-};
+import { useAuth } from "@/lib/firebase/auth";
 
 const input = "w-full rounded-[4px] border border-stone bg-eggshell px-3 py-2.5 text-[15px] focus:border-graphite";
 
 export function ReportForm({ initialUrl }: { initialUrl: string }) {
+  const { api, refreshMe } = useAuth();
   const [url, setUrl] = useState(initialUrl);
   const [claim, setClaim] = useState("");
   const [memo, setMemo] = useState("");
@@ -21,7 +17,6 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-  const [stage, setStage] = useState<string | null>(null);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -34,25 +29,20 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
     form.set("memo", memo);
     for (const f of files) form.append("images", f);
     try {
-      const res = await fetch("/api/reports", { method: "POST", body: form });
+      const res = await api("/api/reports", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "접수하지 못했습니다.");
       setDone(data.merged ? "이미 접수된 게시물입니다. 제보를 합쳐 두었습니다." : "접수했습니다. 고맙습니다.");
+      setUrl("");
       setClaim("");
       setMemo("");
       setFiles([]);
+      void refreshMe();
     } catch (e) {
       setError(e instanceof Error ? e.message : "접수하지 못했습니다.");
     } finally {
       setBusy(false);
     }
-  }
-
-  async function checkStage() {
-    setStage(null);
-    const res = await fetch(`/api/reports?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    setStage(res.ok ? (STAGE[data.stage] ?? "") : (data.error ?? "확인하지 못했습니다."));
   }
 
   return (
@@ -94,17 +84,21 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
         <textarea className={`${input} min-h-24`} maxLength={1000} value={memo} onChange={(e) => setMemo(e.target.value)} />
       </label>
 
+      <p className="text-[12px] leading-relaxed text-smoke">
+        제보하면 주소·주장·메모·스크린샷과 내 계정이 함께 저장됩니다. 남용을 막기 위해 접속 지점은 되돌릴 수 없는 값(해시)으로만
+        남깁니다. 내 기록에서 언제든 확인하고 탈퇴할 수 있습니다.
+      </p>
+
       <div className="flex flex-wrap items-center gap-3">
         <Button tone="primary" type="submit" disabled={busy || !url}>
           {busy ? "보내는 중…" : "제보하기"}
         </Button>
-        <Button type="button" disabled={!url} onClick={() => void checkStage()}>
-          처리 상황 보기
-        </Button>
+        <Link href="/my" className="text-[13px] text-smoke underline">
+          내 제보 보기
+        </Link>
       </div>
       <ErrorLine message={error} />
       {done ? <p className="text-[14px] text-graphite">{done}</p> : null}
-      {stage ? <p className="text-[14px] text-graphite">{stage}</p> : null}
     </form>
   );
 }

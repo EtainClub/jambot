@@ -35,6 +35,8 @@ interface Detail {
     postedUrl?: string;
     skipReason?: string;
     pipelineNote?: string;
+    reporterReply?: string;
+    reporterReplyAt?: number;
     history: { at: number; name: string; action: string; note?: string }[];
   };
   post: { url: string; caption: string | null; contentText: string | null; claimHints: string[]; imageCount: number };
@@ -45,7 +47,7 @@ interface Detail {
 export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
   const { id } = use(params);
   return (
-    <Shell>
+    <Shell access="reviewer">
       <Task id={id} />
     </Shell>
   );
@@ -58,6 +60,7 @@ function Task({ id }: { id: string }) {
   const [comment, setComment] = useState("");
   const [postedUrl, setPostedUrl] = useState("");
   const [skipReason, setSkipReason] = useState("");
+  const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -73,6 +76,7 @@ function Task({ id }: { id: string }) {
     }
     setDetail(data);
     setComment(data.task.finalComment ?? data.task.draftComment ?? "");
+    setReply(data.task.reporterReply ?? "");
   }, []);
 
   useEffect(() => {
@@ -119,9 +123,9 @@ function Task({ id }: { id: string }) {
   const { task, post, checks } = detail;
   const latest = checks[0];
   const mine = task.status === "claimed" && task.assignee === member?.uid;
-  const role = member?.role ?? "observer";
+  const role = member?.role ?? "contributor";
   const canReview = atLeast(role, "reviewer");
-  const isAdmin = atLeast(role, "admin");
+  const isAdmin = atLeast(role, "moderator");
 
   return (
     <div className="space-y-8">
@@ -237,6 +241,33 @@ function Task({ id }: { id: string }) {
           </div>
         ) : null}
       </Card>
+
+      {detail.reports.length ? (
+        <Card>
+          <h2 className="text-[13px] font-semibold text-smoke">제보자에게 답변</h2>
+          <p className="mt-2 text-[13px] text-graphite">
+            제보한 사람 모두의 내 기록에 보입니다. 운영자 이름은 보이지 않습니다. 판정 초안이나 다른 제보자 정보는 쓰지 마세요.
+          </p>
+          {task.reporterReply ? (
+            <p className="mt-2 text-[12px] text-ash tabular">마지막 답변 {formatTime(task.reporterReplyAt)}</p>
+          ) : null}
+          <textarea
+            className="mt-3 min-h-24 w-full rounded-[4px] border border-stone bg-eggshell p-3 text-[14px] disabled:bg-taupe"
+            maxLength={1000}
+            value={reply}
+            disabled={!canReview}
+            onChange={(e) => setReply(e.target.value)}
+            aria-label="제보자에게 답변"
+          />
+          {canReview ? (
+            <div className="mt-2">
+              <Button disabled={busy || !reply.trim() || reply === task.reporterReply} onClick={() => void act({ type: "reply", text: reply })}>
+                답변 저장
+              </Button>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       {canReview || isAdmin ? (
         <Card>

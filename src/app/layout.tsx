@@ -12,13 +12,17 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "잼통 근거 안내", template: "%s · 잼통 근거 안내" },
+  title: { default: "잼통 신고 센터", template: "%s · 잼통 신고 센터" },
   description: "인스타그램의 정책 주장을 잼통 근거와 대조하고, 운영자가 근거 안내 댓글을 나눠 게시합니다.",
   // 운영 도구다. 검색에 드러날 이유가 없다.
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: "#fdfcfc" };
+/*
+ * viewportFit cover: 아이폰 홈 인디케이터 영역까지 화면을 쓴다. 하단 탭 바가
+ * env(safe-area-inset-bottom)만큼 스스로 비켜 선다.
+ */
+export const viewport: Viewport = { themeColor: "#fdfcfc", viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

@@ -19,7 +19,7 @@ const bodySchema = z.discriminatedUnion("action", [
 
 export async function POST(request: Request, ctx: RouteContext<"/api/gaps/[key]">) {
   try {
-    const actor = await requireMember(request, "admin");
+    const actor = await requireMember(request, "moderator");
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "요청 형식이 올바르지 않습니다.");
     const { key } = await ctx.params;

@@ -10,6 +10,7 @@
  *     └──release/expire─┘
  *   queued·needs_review·claimed ──skip──▶ skipped
  *   needs_review·skipped·no_action ──requeue(admin)──▶ queued
+ *   (상태 무관) ──reply──▶ 제보자 답변만 바뀐다
  *
  * waiting_for_content·no_content·no_action은 파이프라인이 정한다. 사람이
  * 손으로 옮기는 것은 requeue뿐이다.
@@ -28,8 +29,31 @@ export const TASK_STATUSES = [
 ] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-export const ROLES = ["observer", "reviewer", "admin", "owner"] as const;
+/**
+ * 역할. 뒤로 갈수록 권한이 크고, 앞의 권한을 모두 갖는다.
+ *
+ *   contributor  제보자. 구글을 연결하면 저절로 이 역할이다. fc_members 문서가 없다
+ *   reviewer     검토자. 작업을 수락해 댓글을 고치고 게시한다. 제보자에게 답한다
+ *   moderator    운영 관리자. 남의 작업 반납, 대기열 복귀, 재판정, 자료 공백 요청
+ *   admin        관리자. 사람을 운영자로 지정하고 해제한다
+ *
+ * moderator와 admin을 나누는 이유: 큐를 정리하는 손은 여럿이어도 되지만,
+ * 사람을 운영자로 올리는 손은 적어야 한다. 둘을 한 역할에 묶으면 큐 정리를
+ * 맡기는 순간 운영자 지정 권한까지 넘어간다.
+ */
+export const ROLES = ["contributor", "reviewer", "moderator", "admin"] as const;
 export type Role = (typeof ROLES)[number];
+
+/** 운영자 역할. fc_members에 적히는 것은 이 셋뿐이다. */
+export const OPERATOR_ROLES = ["reviewer", "moderator", "admin"] as const;
+export type OperatorRole = (typeof OPERATOR_ROLES)[number];
+
+export const ROLE_LABEL: Record<Role, string> = {
+  contributor: "제보자",
+  reviewer: "검토자",
+  moderator: "운영 관리자",
+  admin: "관리자",
+};
 
 export function atLeast(role: Role, min: Role): boolean {
   return ROLES.indexOf(role) >= ROLES.indexOf(min);
@@ -57,7 +81,9 @@ export type TaskAction =
   | { type: "edit"; comment: string }
   | { type: "posted"; postedUrl: string; comment: string }
   | { type: "skip"; reason: string }
-  | { type: "requeue" };
+  | { type: "requeue" }
+  /** 제보자에게 보이는 답변. 운영자 이름은 내보내지 않는다. */
+  | { type: "reply"; text: string };
 
 export interface HistoryEntry {
   at: number;
@@ -101,7 +127,7 @@ export function applyAction(task: TaskState, action: TaskAction, actor: Actor, n
       };
 
     case "release":
-      if (!mine && !(task.status === "claimed" && atLeast(actor.role, "admin"))) {
+      if (!mine && !(task.status === "claimed" && atLeast(actor.role, "moderator"))) {
         return fail("담당자나 운영 관리자만 반납할 수 있습니다.");
       }
       return { ok: true, patch: unassigned("queued"), history: entry() };
@@ -145,15 +171,27 @@ export function applyAction(task: TaskState, action: TaskAction, actor: Actor, n
       if (!atLeast(actor.role, "reviewer")) return fail("검토자 이상만 건너뛸 수 있습니다.");
       const open = task.status === "queued" || task.status === "needs_review" || mine;
       if (!open) return fail("이 상태에서는 건너뛸 수 없습니다.");
-      return { ok: true, patch: { ...unassigned("skipped"), skipReason: reason }, history: entry(reason) };
+      return {
+        ok: true,
+        patch: { ...unassigned("skipped"), skipReason: reason, skippedBy: actor.uid, skippedAt: now },
+        history: entry(reason),
+      };
     }
 
     case "requeue":
-      if (!atLeast(actor.role, "admin")) return fail("운영 관리자만 다시 대기열에 넣을 수 있습니다.");
+      if (!atLeast(actor.role, "moderator")) return fail("운영 관리자만 다시 대기열에 넣을 수 있습니다.");
       if (!["needs_review", "skipped", "no_action"].includes(task.status)) {
         return fail("이 상태에서는 다시 대기열에 넣을 수 없습니다.");
       }
       return { ok: true, patch: unassigned("queued"), history: entry() };
+
+    case "reply": {
+      if (!atLeast(actor.role, "reviewer")) return fail("검토자 이상만 답변할 수 있습니다.");
+      const text = action.text.trim();
+      if (!text) return fail("답변이 비어 있습니다.");
+      if (text.length > 1000) return fail("답변은 1000자 이내로 써 주세요.");
+      return { ok: true, patch: { reporterReply: text, reporterReplyAt: now }, history: entry(text) };
+    }
   }
 }
 

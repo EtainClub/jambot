@@ -17,6 +17,7 @@ import { db } from "@/lib/firebase/admin";
  */
 
 const IP_LIMIT = Number(process.env.REPORT_IP_LIMIT ?? 10); // 1시간당
+const USER_LIMIT = Number(process.env.REPORT_USER_LIMIT ?? 10); // 1시간당, 계정마다
 const DAILY_LIMIT = Number(process.env.REPORT_DAILY_LIMIT ?? 200);
 
 export function clientIpHash(request: Request): string {
@@ -27,19 +28,27 @@ export function clientIpHash(request: Request): string {
   return createHash("sha256").update(`fc:${ip}`).digest("hex").slice(0, 32);
 }
 
-/** 한도 안이면 true를 돌려주고 센다. 넘었으면 false. */
-export async function consume(ipHash: string, now = new Date()): Promise<boolean> {
+/**
+ * 한도 안이면 true를 돌려주고 센다. 넘었으면 false.
+ *
+ * 계정과 접속 지점을 둘 다 센다. 계정만 세면 계정을 여럿 만들어 넘고,
+ * 접속 지점만 세면 같은 와이파이를 쓰는 사람들이 서로를 막는다.
+ */
+export async function consume(ipHash: string, uid: string, now = new Date()): Promise<boolean> {
   const hour = now.toISOString().slice(0, 13);
   const day = now.toISOString().slice(0, 10);
   const ipRef = db().collection("fc_counters").doc(`ip_${ipHash}_${hour}`);
+  const userRef = db().collection("fc_counters").doc(`user_${uid}_${hour}`);
   const dayRef = db().collection("fc_counters").doc(`day_${day}`);
 
   return db().runTransaction(async (tx) => {
-    const [ip, total] = await Promise.all([tx.get(ipRef), tx.get(dayRef)]);
+    const [ip, user, total] = await Promise.all([tx.get(ipRef), tx.get(userRef), tx.get(dayRef)]);
     if ((ip.data()?.count ?? 0) >= IP_LIMIT) return false;
+    if ((user.data()?.count ?? 0) >= USER_LIMIT) return false;
     if ((total.data()?.count ?? 0) >= DAILY_LIMIT) return false;
-    tx.set(ipRef, { count: FieldValue.increment(1), at: now }, { merge: true });
-    tx.set(dayRef, { count: FieldValue.increment(1), at: now }, { merge: true });
+    for (const ref of [ipRef, userRef, dayRef]) {
+      tx.set(ref, { count: FieldValue.increment(1), at: now }, { merge: true });
+    }
     return true;
   });
 }

@@ -3,14 +3,20 @@ import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { after } from "next/server";
 
-import { errorResponse, HttpError } from "@/lib/auth/member";
+import { errorResponse, HttpError, requireUser } from "@/lib/auth/member";
 import { runCheck } from "@/lib/check/pipeline";
 import { bucket, db } from "@/lib/firebase/admin";
 import { parseInstagramUrl } from "@/lib/instagram/url";
 import { clientIpHash, consume } from "@/lib/ratelimit";
+import { countReport, ensureProfile } from "@/lib/users";
 
 /**
- * 제보 접수. 로그인 없이 받는다.
+ * 제보 접수. 구글이 연결된 계정만 받는다.
+ *
+ * ★ 왜 구글 연결인가.
+ *   제보자가 자기 제보와 그 처리 결과를 내 기록에서 다시 볼 수 있어야 하고,
+ *   익명 계정은 브라우저를 지우면 사라진다. 남용을 막는 데도 계정 단위 한도가
+ *   접속 지점 한도보다 정확하다. 둘러보기는 익명으로 그대로 된다.
  *
  * ★ 같은 게시물은 한 문서다.
  *   문서 id가 shortcode이므로 두 사람이 같은 게시물을 동시에 제보해도 문서는
@@ -36,6 +42,9 @@ function text(form: FormData, key: string, max: number): string {
 
 export async function POST(request: Request) {
   try {
+    const user = await requireUser(request, { google: true });
+    await ensureProfile(user);
+
     let form: FormData;
     try {
       form = await request.formData();
@@ -56,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     const ipHash = clientIpHash(request);
-    if (!(await consume(ipHash))) throw new HttpError(429, "제보가 몰리고 있습니다. 잠시 후 다시 시도해 주세요.");
+    if (!(await consume(ipHash, user.uid))) throw new HttpError(429, "제보가 몰리고 있습니다. 잠시 후 다시 시도해 주세요.");
 
     const reportId = randomUUID();
     const imagePaths = await Promise.all(
@@ -75,6 +84,7 @@ export async function POST(request: Request) {
       claim: claim || null,
       memo: memo || null,
       imagePaths,
+      reporterUid: user.uid,
       ipHash,
       createdAt: now,
     });
@@ -122,6 +132,7 @@ export async function POST(request: Request) {
       return { created: false, recheck: task.data()?.status === "no_content" && imagePaths.length > 0 };
     });
 
+    await countReport(user.uid);
     if (created || recheck) after(() => runCheck(shortcode));
     return Response.json({ shortcode, merged: !created }, { status: created ? 201 : 200 });
   } catch (error) {
@@ -129,20 +140,3 @@ export async function POST(request: Request) {
   }
 }
 
-/** 제보자가 처리 상황을 본다. 판정 내용은 내보내지 않고 단계만 알린다. */
-export async function GET(request: Request) {
-  const parsed = parseInstagramUrl(new URL(request.url).searchParams.get("url") ?? "");
-  if (!parsed) return Response.json({ error: "인스타그램 게시물 주소를 넣어 주세요." }, { status: 400 });
-  try {
-    const task = (await db().collection("fc_tasks").doc(parsed.shortcode).get()).data();
-    if (!task) return Response.json({ stage: "none" });
-    const stage = task.status === "posted" || task.status === "no_action" || task.status === "skipped"
-      ? "done"
-      : task.status === "processing"
-        ? "checking"
-        : "reviewing";
-    return Response.json({ stage });
-  } catch (error) {
-    return errorResponse(error, "reports:status");
-  }
-}

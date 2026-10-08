@@ -10,8 +10,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "잼통 근거 안내",
-    short_name: "근거 안내",
+    name: "잼통 신고 센터",
+    short_name: "신고 센터",
     start_url: "/",
     display: "standalone",
     background_color: "#fdfcfc",

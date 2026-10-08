@@ -25,7 +25,7 @@ const TABS = [
 
 export default function GapsPage() {
   return (
-    <Shell>
+    <Shell access="reviewer">
       <Gaps />
     </Shell>
   );
@@ -89,7 +89,7 @@ function Gaps() {
       ) : (
         <div className="space-y-4">
           {gaps.map((g) => (
-            <GapCard key={g.key} gap={g} canAct={atLeast(member?.role ?? "observer", "admin")} onChange={load} />
+            <GapCard key={g.key} gap={g} canAct={atLeast(member?.role ?? "contributor", "moderator")} onChange={load} />
           ))}
         </div>
       )}
