@@ -68,6 +68,13 @@ pnpm grant-member you@example.com admin
 FACTBASE_URL=http://localhost:3000/factbase.json pnpm smoke "게시물 글"
 ```
 
+## 배포
+
+- 서비스 주소: **https://bot.jamtong.kr** (App Hosting 백엔드 `jambot`, asia-east1, GitHub `EtainClub/jambot`의 `main`)
+- 기본 주소: https://jambot--insta-fact.asia-east1.hosted.app
+- DNS (jamtong.kr, whoisdomain): `bot` A `35.219.200.56`, `bot` TXT `fah-claim=…` (값은 콘솔의 커스텀 도메인 화면)
+- Auth 승인된 도메인에 `bot.jamtong.kr`과 기본 주소가 들어 있어야 구글 연결 팝업이 열립니다
+
 ## Firebase 설정 체크리스트
 
 1. Authentication → **익명** 로그인과 **Google** 로그인 사용, 승인된 도메인에 배포 도메인 추가
@@ -76,8 +83,8 @@ FACTBASE_URL=http://localhost:3000/factbase.json pnpm smoke "게시물 글"
 3. Storage 생성 → `firebase deploy --only storage`
 4. App Hosting 백엔드 생성 → `apphosting.yaml`의 `<콘솔 값>` 채우기, Secret Manager에 `ANTHROPIC_API_KEY`, `FACTBOT_CRON_SECRET`
 5. Cloud Scheduler (헤더 `Authorization: Bearer <CRON_SECRET>`, POST)
-   - `/api/jobs/expire-claims` — 5분마다
-   - `/api/jobs/factbase-sync` — 30분마다
+   - `https://bot.jamtong.kr/api/jobs/expire-claims` — 5분마다
+   - `https://bot.jamtong.kr/api/jobs/factbase-sync` — 30분마다
 6. (선택) `GITHUB_TOKEN` — 잼통 저장소 issues 쓰기 권한. 없으면 이슈 본문을 화면에 띄워 손으로 올립니다.
 
 ## 검사

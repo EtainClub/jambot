@@ -11,25 +11,31 @@ runConfig:
   memoryMiB: 1024
 
 env:
+  # 서비스 주소. 커스텀 도메인 bot.jamtong.kr (App Hosting 백엔드 jambot에 연결).
+  # NEXT_PUBLIC_*은 빌드 때 코드에 박히므로 BUILD에도 연다.
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: https://bot.jamtong.kr
+    availability: [BUILD, RUNTIME]
+
   # NEXT_PUBLIC_FIREBASE_* 는 브라우저로 나가는 값이라 비밀이 아니다.
   # 값은 Firebase 콘솔의 웹 앱 설정에서 옮긴다. BUILD에도 열어야 빌드 때 코드에 박힌다.
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "<콘솔 값>"
+    value: "AIzaSyAz4Dpcz_ML5ZyFQeaS_4L81WYwj3aNAqo"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: "<콘솔 값>"
+    value: "insta-fact.firebaseapp.com"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: "<콘솔 값>"
+    value: "insta-fact"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: "<콘솔 값>"
+    value: "insta-fact.firebasestorage.app"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "<콘솔 값>"
+    value: "817350725163"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: "<콘솔 값>"
+    value: "1:817350725163:web:db7e77690e5dbdabdfa46e"
     availability: [BUILD, RUNTIME]
 
   # 비밀값은 Secret Manager를 가리킨다.

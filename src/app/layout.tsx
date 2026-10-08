@@ -12,6 +12,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  // 공유 링크와 아이콘의 기준 주소. 서비스 도메인은 bot.jamtong.kr이다.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://bot.jamtong.kr"),
   title: { default: "잼통 신고 센터", template: "%s · 잼통 신고 센터" },
   description: "인스타그램의 정책 주장을 잼통 근거와 대조하고, 운영자가 근거 안내 댓글을 나눠 게시합니다.",
   // 운영 도구다. 검색에 드러날 이유가 없다.
