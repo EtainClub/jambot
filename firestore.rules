@@ -1,0 +1,19 @@
+rules_version = '2';
+
+/*
+ * insta-factbot Firestore 규칙.
+ *
+ * ★ 브라우저는 아무것도 직접 읽거나 쓰지 않는다.
+ *   모든 데이터는 서버 API(Admin SDK)를 거친다. Admin SDK는 규칙을 우회하므로,
+ *   여기서 열어 둘 것이 없다. 권한 검사는 서버 한 곳(src/lib/auth/member.ts)에만 둔다 —
+ *   규칙과 서버 두 곳에 나눠 두면 한쪽은 반드시 덜 검사된다.
+ *
+ * 제보 내용에는 남의 게시물 이야기가 담긴다. 공개로 열 이유가 없다.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

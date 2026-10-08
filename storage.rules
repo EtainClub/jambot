@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// 제보 스크린샷. 서버(Admin SDK)만 읽고 쓴다. 운영자 화면은 API를 거쳐 받는다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

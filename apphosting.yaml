@@ -1,0 +1,58 @@
+# Firebase App Hosting 설정.
+#
+# 판정은 요청 뒤(after)에 돌고 모델을 두 번 부르므로 수십 초가 걸린다.
+# 운영자 수가 적어 동시 요청은 많지 않다. 상한은 비용을 묶는 쪽으로 둔다.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 40
+  cpu: 1
+  memoryMiB: 1024
+
+env:
+  # NEXT_PUBLIC_FIREBASE_* 는 브라우저로 나가는 값이라 비밀이 아니다.
+  # 값은 Firebase 콘솔의 웹 앱 설정에서 옮긴다. BUILD에도 열어야 빌드 때 코드에 박힌다.
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "<콘솔 값>"
+    availability: [BUILD, RUNTIME]
+
+  # 비밀값은 Secret Manager를 가리킨다.
+  - variable: ANTHROPIC_API_KEY
+    secret: ANTHROPIC_API_KEY
+    availability: [RUNTIME]
+  - variable: CRON_SECRET
+    secret: FACTBOT_CRON_SECRET
+    availability: [RUNTIME]
+  # 없으면 공백 요청 시 이슈 본문만 돌려준다(운영자가 손으로 올림).
+  # - variable: GITHUB_TOKEN
+  #   secret: FACTBOT_GITHUB_TOKEN
+  #   availability: [RUNTIME]
+
+  - variable: FACTBASE_URL
+    value: https://jamtong.kr/factbase.json
+    availability: [RUNTIME]
+  - variable: CHECK_MODEL
+    value: claude-opus-5-5
+    availability: [RUNTIME]
+  - variable: REPORT_IP_LIMIT
+    value: "10"
+    availability: [RUNTIME]
+  - variable: REPORT_DAILY_LIMIT
+    value: "200"
+    availability: [RUNTIME]
