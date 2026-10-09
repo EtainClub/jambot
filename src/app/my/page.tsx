@@ -63,6 +63,9 @@ function My() {
         <p className="mt-6 max-w-[34em] text-[13px] leading-relaxed text-smoke">
           연결하면 구글 계정의 이메일과 이름만 받습니다. 연락처나 다른 정보는 받지 않으며, 언제든 이 화면에서 탈퇴할 수 있습니다.
         </p>
+        <Link href="/guide" className="ui-button mt-4 inline-block text-[13px] font-semibold underline underline-offset-4">
+          처음이라면 사용법 보기 <span aria-hidden="true">→</span>
+        </Link>
       </>
     );
   }
@@ -80,6 +83,10 @@ function My() {
           <span className="mt-1 block text-[13px] text-smoke">구글을 연결한 사람에게 검토자·운영 관리자·관리자 역할을 줍니다.</span>
         </Link>
       ) : null}
+      <Link href="/guide" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
+        <span className="text-[15px] font-semibold">사용법</span>
+        <span className="mt-1 block text-[13px] text-smoke">제보하는 법, 운영자가 댓글을 붙여넣고 게시 완료하는 법을 그림으로 봅니다.</span>
+      </Link>
       <Account />
     </div>
   );

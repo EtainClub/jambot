@@ -59,6 +59,7 @@ export default function HomePage() {
               게시물 제보하기 <span aria-hidden="true">↗</span>
             </Link>
             <Link href="/my" className="ui-button rounded-full border border-stone px-5 py-3 text-[14px] font-semibold text-graphite hover:border-graphite">내 기록</Link>
+            <Link href="/guide" className="ui-button rounded-full border border-stone px-5 py-3 text-[14px] font-semibold text-graphite hover:border-graphite">사용법</Link>
           </div>
         </div>
         <HowItWorks />

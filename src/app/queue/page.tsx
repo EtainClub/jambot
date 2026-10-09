@@ -69,7 +69,17 @@ function Queue() {
 
   return (
     <>
-      <Heading lede="잼통 근거와 대조한 게시물입니다. 작업을 수락하면 30분 동안 내 담당이 되고, 실제로 댓글을 단 뒤 게시 완료를 눌러야 기록됩니다.">
+      <Heading
+        lede={
+          <>
+            잼통 근거와 대조한 게시물입니다. 작업을 수락하면 30분 동안 내 담당이 되고, 실제로 댓글을 단 뒤 게시 완료를 눌러야
+            기록됩니다.{" "}
+            <Link href="/guide#comment" className="underline underline-offset-4">
+              댓글 다는 법
+            </Link>
+          </>
+        }
+      >
         무엇을 바로잡아야 하나
       </Heading>
 

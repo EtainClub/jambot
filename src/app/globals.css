@@ -115,6 +115,7 @@ body {
 .workflow-step[aria-pressed="true"] { border-color: var(--navy); background: var(--navy-tint); }
 .step-detail { animation: enter-page 250ms var(--ease-out-expo) both; }
 .step-track { transition: transform 280ms var(--ease-out-expo); transform-origin: left; }
+.guide-tap { box-shadow: 0 0 0 6px rgb(193 53 132 / 0.25); animation: guide-tap 1.8s ease-in-out infinite; }
 .nav-icon { transition: background-color 200ms ease, transform 200ms var(--ease-out-expo); }
 .nav-link[aria-current="page"] .nav-icon { background: var(--navy-tint); animation: nav-settle 260ms var(--ease-out-expo); }
 .nav-link:active .nav-icon { transform: scale(0.9); }
@@ -143,6 +144,7 @@ body {
 @keyframes nav-settle { from { transform: translateY(3px); } to { transform: translateY(0); } }
 @keyframes skeleton-breathe { 50% { opacity: 0.45; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes guide-tap { 50% { box-shadow: 0 0 0 11px rgb(193 53 132 / 0); } }
 
 @media (prefers-reduced-motion: reduce) {
   *,
