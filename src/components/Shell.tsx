@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/lib/firebase/auth";
@@ -9,6 +10,7 @@ import { atLeast, ROLE_LABEL, type OperatorRole } from "@/lib/tasks/transitions"
 import { BottomNav } from "./BottomNav";
 import { navFor } from "./nav";
 import { Button } from "./ui";
+import logo from "../../public/brand/jamtong-report-logo.png";
 
 /**
  * 상단 바와 접근 확인.
@@ -55,8 +57,14 @@ export function Shell({
     <>
       <header className="sticky top-0 z-10 border-b border-stone bg-canvas/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
-          <Link href="/" className="text-[15px] font-semibold tracking-[-0.01em]">
-            잼통 신고 센터
+          <Link href="/" className="shrink-0 rounded focus-visible:outline-2 focus-visible:outline-offset-4">
+            <Image
+              src={logo}
+              alt="잼통 신고 센터"
+              className="h-auto w-[160px] sm:w-[180px]"
+              sizes="(min-width: 640px) 180px, 160px"
+              loading="eager"
+            />
           </Link>
           {/* 넓은 화면에서만. 휴대폰에서는 하단 탭 바가 같은 일을 한다. */}
           <nav className="hidden gap-1 sm:flex" aria-label="상단 메뉴">
@@ -67,7 +75,7 @@ export function Shell({
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-1.5 text-[13px] font-semibold ${active ? "bg-ink text-eggshell" : "text-smoke hover:text-ink"}`}
+                  className={`ui-button rounded-full px-3 py-1.5 text-[13px] font-semibold ${active ? "bg-ink text-eggshell" : "text-smoke hover:text-ink"}`}
                 >
                   {item.label}
                 </Link>
@@ -87,7 +95,7 @@ export function Shell({
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:py-12">
-        {body}
+        <div key={path} className="page-enter">{body}</div>
       </main>
       <BottomNav />
     </>

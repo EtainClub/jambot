@@ -6,14 +6,14 @@ import { VERDICT_LABEL, type Verdict } from "@/lib/check/types";
  * 공용 조각. 잼통 디자인 시스템 규칙:
  *   - 누를 수 있는 것은 알약(rounded-full), 담는 것은 카드(rounded-[20px]), 입력은 거의 각지게(rounded-[4px])
  *   - 그림자 없음. 면은 stone 1px 헤어라인으로 나눈다
- *   - 색은 데이터(판정)에만
+ *   - 기본 조각은 무채색, 판정과 안내·선택 상태는 의미에 맞는 색
  */
 
 type Tone = "primary" | "quiet";
 
 export function Button({ tone = "quiet", className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone }) {
   const base =
-    "rounded-full px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed";
+    "ui-button rounded-full px-4 py-2 text-[13px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed";
   const look =
     tone === "primary"
       ? "bg-ink text-eggshell hover:opacity-85"
@@ -22,7 +22,7 @@ export function Button({ tone = "quiet", className = "", ...rest }: ButtonHTMLAt
 }
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-[20px] border border-stone bg-eggshell p-5 sm:p-8 ${className}`}>{children}</section>;
+  return <section className={`surface-card rounded-[20px] border border-stone bg-eggshell p-5 sm:p-8 ${className}`}>{children}</section>;
 }
 
 export function Heading({ children, lede }: { children: React.ReactNode; lede?: React.ReactNode }) {
@@ -68,15 +68,33 @@ export const STATUS_LABEL: Record<string, string> = {
 
 export function StatusTag({ status }: { status: string }) {
   const tone = status === "needs_review" ? "bg-pending-tint text-pending" : "bg-taupe text-graphite";
-  return <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${tone}`}>{STATUS_LABEL[status] ?? status}</span>;
+  return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${tone}`}>
+    {status === "processing" ? <span className="status-dot" aria-hidden="true" /> : null}
+    {STATUS_LABEL[status] ?? status}
+  </span>;
 }
 
 export function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-3 text-[13px] text-burgundy">
+    <p role="alert" className="feedback-enter mt-3 text-[13px] text-burgundy">
       {message}
     </p>
+  );
+}
+
+export function LoadingCards({ label = "불러오는 중…" }: { label?: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-3">
+      <span className="sr-only">{label}</span>
+      {[0, 1, 2].map((n) => (
+        <div key={n} aria-hidden="true" className="rounded-[20px] border border-stone p-5">
+          <div className="skeleton mb-4 h-3 w-24 rounded-full" />
+          <div className="skeleton h-3 w-4/5 rounded-full" />
+          <div className="skeleton mt-2 h-3 w-3/5 rounded-full" />
+        </div>
+      ))}
+    </div>
   );
 }
 

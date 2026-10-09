@@ -36,11 +36,11 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+                className={`nav-link relative flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
                   active ? "text-navy" : "text-ash hover:text-smoke"
                 }`}
               >
-                {item.icon}
+                <span className="nav-icon flex h-7 w-10 items-center justify-center rounded-full">{item.icon}</span>
                 <span className="text-[10px] font-medium">{item.short}</span>
               </Link>
             </li>

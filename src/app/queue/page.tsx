@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Shell } from "@/components/Shell";
-import { ErrorLine, formatTime, Heading, StatusTag, STATUS_LABEL, VerdictBadge } from "@/components/ui";
+import { ErrorLine, formatTime, Heading, LoadingCards, StatusTag, STATUS_LABEL, VerdictBadge } from "@/components/ui";
 import type { Verdict } from "@/lib/check/types";
 import { useAuth } from "@/lib/firebase/auth";
 
@@ -46,6 +46,10 @@ function Queue() {
         if (!alive) return;
         setError(res.ok ? null : (data.error ?? "목록을 불러오지 못했습니다."));
         setTasks(res.ok ? data.tasks : []);
+      }).catch(() => {
+        if (!alive) return;
+        setError("목록을 불러오지 못했습니다. 잠시 후 다시 확인합니다.");
+        setTasks([]);
       });
     void run();
     // 실시간 구독 대신 30초마다 다시 읽는다. 브라우저가 Firestore를 직접 읽지 않기 때문이다.
@@ -59,6 +63,7 @@ function Queue() {
   function choose(next: string) {
     if (next === tab) return;
     setTasks(null);
+    setError(null);
     setTab(next);
   }
 
@@ -73,9 +78,22 @@ function Queue() {
           <button
             key={s}
             role="tab"
+            id={`queue-tab-${s}`}
+            aria-controls="queue-results"
             aria-selected={tab === s}
+            tabIndex={tab === s ? 0 : -1}
             onClick={() => choose(s)}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold ${tab === s ? "bg-ink text-eggshell" : "border border-stone text-graphite hover:border-graphite"}`}
+            onKeyDown={(event) => {
+              const index = TABS.indexOf(s);
+              const next = event.key === "ArrowRight" ? (index + 1) % TABS.length
+                : event.key === "ArrowLeft" ? (index + TABS.length - 1) % TABS.length
+                : event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : null;
+              if (next === null) return;
+              event.preventDefault();
+              choose(TABS[next]);
+              document.getElementById(`queue-tab-${TABS[next]}`)?.focus();
+            }}
+            className={`ui-button rounded-full px-3.5 py-1.5 text-[13px] font-semibold ${tab === s ? "bg-ink text-eggshell" : "border border-stone text-graphite hover:border-graphite"}`}
           >
             {STATUS_LABEL[s]}
           </button>
@@ -83,15 +101,16 @@ function Queue() {
       </div>
 
       <ErrorLine message={error} />
+      <div id="queue-results" role="tabpanel" aria-labelledby={`queue-tab-${tab}`} tabIndex={0} aria-busy={tasks === null}>
       {tasks === null ? (
-        <p className="text-[14px] text-smoke">불러오는 중…</p>
-      ) : tasks.length === 0 ? (
-        <p className="text-[14px] text-smoke">이 상태의 작업이 없습니다.</p>
+        <LoadingCards label={`${STATUS_LABEL[tab]} 작업을 불러오는 중`} />
+      ) : error ? null : tasks.length === 0 ? (
+        <p className="feedback-enter rounded-[20px] border border-dashed border-stone p-8 text-center text-[14px] text-smoke">이 상태의 작업이 없습니다.</p>
       ) : (
         <ul className="divide-y divide-stone border-y border-stone">
           {tasks.map((t) => (
             <li key={t.id}>
-              <Link href={`/tasks/${t.id}`} className="block py-4 hover:bg-taupe/60 sm:px-2">
+              <Link href={`/tasks/${t.id}`} className="interactive-row block py-4 hover:bg-taupe/60 sm:px-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusTag status={t.status} />
                   <VerdictBadge verdict={t.verdict} />
@@ -115,6 +134,7 @@ function Queue() {
           ))}
         </ul>
       )}
+      </div>
     </>
   );
 }

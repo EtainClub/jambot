@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Shell } from "@/components/Shell";
-import { Card, formatTime, Heading, VerdictBadge } from "@/components/ui";
+import { HowItWorks, ReportFAQ } from "@/components/HowItWorks";
+import { Button, Card, formatTime, LoadingCards, VerdictBadge } from "@/components/ui";
 import type { Verdict } from "@/lib/check/types";
 
 interface Posted {
@@ -25,6 +26,7 @@ interface Posted {
 export default function HomePage() {
   const [posted, setPosted] = useState<Posted[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -38,38 +40,44 @@ export default function HomePage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [retry]);
 
   return (
     <Shell>
-      <Heading
-        lede={
-          <>
-            인스타그램에 도는 정부 정책 주장을 <a className="underline" href="https://jamtong.kr">잼통</a>의 근거 자료와
-            대조합니다. 운영자가 확인한 뒤, 출처를 붙인 안내 댓글을 직접 답니다. 잼통에 근거가 없는 주장은 판정하지 않고, 자료를
-            먼저 등록합니다.
-          </>
-        }
-      >
-        근거로 답합니다
-      </Heading>
-
-      <div className="mb-12 flex flex-wrap gap-2">
-        <Link href="/report" className="rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-eggshell hover:opacity-85">
-          게시물 제보하기
-        </Link>
-        <Link href="/my" className="rounded-full border border-stone px-4 py-2 text-[13px] font-semibold text-graphite hover:border-graphite">
-          내 기록
-        </Link>
+      <div className="mb-12 grid items-center gap-8 lg:grid-cols-[1fr_1fr] lg:gap-12">
+        <div>
+          <p className="mb-4 text-[12px] font-semibold tracking-wide text-smoke">함께 확인하고, 근거로 전합니다</p>
+          <h1 className="text-[40px] font-light leading-[1.2] tracking-[-0.04em] sm:text-[48px]">
+            의심스러운 주장에<br /><span className="font-semibold">근거로 답합니다</span>
+          </h1>
+          <p className="mt-5 max-w-[34em] text-[15px] leading-relaxed text-graphite">
+            인스타그램에 도는 정부 정책 주장을 <a className="underline underline-offset-4" href="https://jamtong.kr">잼통</a>의 근거 자료와
+            대조합니다. 운영자가 확인한 뒤, 출처를 붙인 팩트 체크 댓글을 직접 답니다.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-2">
+            <Link href="/report" className="ui-button rounded-full bg-ink px-5 py-3 text-[14px] font-semibold text-eggshell hover:opacity-85">
+              게시물 제보하기 <span aria-hidden="true">↗</span>
+            </Link>
+            <Link href="/my" className="ui-button rounded-full border border-stone px-5 py-3 text-[14px] font-semibold text-graphite hover:border-graphite">내 기록</Link>
+          </div>
+        </div>
+        <HowItWorks />
       </div>
 
       <h2 className="mb-4 text-[13px] font-semibold text-smoke">최근 게시한 근거 안내</h2>
       {posted === null ? (
-        <p className="text-[14px] text-smoke">불러오는 중…</p>
+        <LoadingCards label="게시한 근거 안내를 불러오는 중" />
       ) : failed ? (
-        <p className="text-[14px] text-smoke">기록을 불러오지 못했습니다.</p>
+        <Card>
+          <p className="text-[14px] text-smoke" role="status">기록을 불러오지 못했습니다.</p>
+          <Button className="mt-4" onClick={() => { setFailed(false); setPosted(null); setRetry((n) => n + 1); }}>다시 불러오기</Button>
+        </Card>
       ) : posted.length === 0 ? (
-        <p className="text-[14px] text-smoke">아직 게시한 안내가 없습니다.</p>
+        <Card className="text-center">
+          <p className="text-[16px] font-semibold">첫 근거 안내를 기다리고 있습니다</p>
+          <p className="mt-2 text-[14px] text-smoke">의심스러운 게시물을 제보해 주세요. 운영자가 확인하고 게시한 댓글이 여기에 모입니다.</p>
+          <Link href="/report" className="ui-button mt-4 text-[13px] font-semibold underline underline-offset-4">게시물 제보하기 <span aria-hidden="true">→</span></Link>
+        </Card>
       ) : (
         <div className="space-y-4">
           {posted.map((p) => (
@@ -91,6 +99,7 @@ export default function HomePage() {
           ))}
         </div>
       )}
+      <ReportFAQ />
     </Shell>
   );
 }

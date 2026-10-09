@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { AuthProvider } from "@/lib/firebase/auth";
+import { APP_NAME, APP_DESCRIPTION } from "@/lib/brand";
 
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -15,8 +16,41 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   // 공유 링크와 아이콘의 기준 주소. 서비스 도메인은 bot.jamtong.kr이다.
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://bot.jamtong.kr"),
-  title: { default: "잼통 신고 센터", template: "%s · 잼통 신고 센터" },
-  description: "인스타그램의 정책 주장을 잼통 근거와 대조하고, 운영자가 근거 안내 댓글을 나눠 게시합니다.",
+  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
+  description: APP_DESCRIPTION,
+  applicationName: APP_NAME,
+  manifest: "/manifest.webmanifest",
+  // favicon.ico / icon.png / apple-icon.png는 Next.js 파일 규칙으로도 지정된다.
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "48x48", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+  },
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "default" },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    siteName: APP_NAME,
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: [{
+      url: "/brand/jamtong-report-share.png",
+      width: 1200,
+      height: 630,
+      type: "image/png",
+      alt: "잼통 신고 센터 — 파란 잼통과 민트색 체크 로고",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: [{ url: "/brand/jamtong-report-share.png", alt: APP_NAME }],
+  },
   // 운영 도구다. 검색에 드러날 이유가 없다.
   robots: { index: false, follow: false },
 };

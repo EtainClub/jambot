@@ -5,9 +5,9 @@
 /*
  * 디자인 토큰 — 잼통 디자인 시스템 그대로(~/devel-src/jamtong/src/app/globals.css).
  *
- * 가장 중요한 규칙: UI는 무채색, 색은 데이터에만.
+ * UI는 무채색을 기본으로 하고, 안내·선택 상태에는 브랜드의 파란색을 쓴다.
  * 이 앱에서 '데이터'는 판정이다. 사실과 다름(burgundy), 사실(navy),
- * 검증 전·사람 확인 필요(pending)만 색을 갖는다. 버튼·카드·탭은 잉크와 회색이다.
+ * 검증 전·사람 확인 필요(pending)는 별도 판정 색을 갖는다. 기본 버튼은 잉크와 회색이다.
  */
 :root {
   --eggshell: #fdfcfc;
@@ -87,6 +87,63 @@ body {
   border-radius: 2px;
 }
 
+/* Short, user-triggered motion; content stays visible without JavaScript. */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  transition: transform 160ms var(--ease-out-expo), background-color 180ms ease,
+    border-color 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+
+.ui-button:not(:disabled):active { transform: scale(0.97); }
+.ui-button:disabled { transform: none; }
+.surface-card { transition: border-color 180ms ease; }
+.surface-card:focus-within { border-color: var(--ash); }
+.interactive-row { transition: background-color 180ms ease, padding-left 180ms ease; }
+.page-enter { animation: enter-page 380ms var(--ease-out-expo) both; }
+.feedback-enter { animation: enter-page 240ms var(--ease-out-expo) both; }
+
+.hero-panel {
+  background: radial-gradient(ellipse at 100% 0%, #e8efff 0%, transparent 60%), var(--eggshell);
+}
+.workflow-step {
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms var(--ease-out-expo);
+}
+.workflow-step[aria-pressed="true"] { border-color: var(--navy); background: var(--navy-tint); }
+.step-detail { animation: enter-page 250ms var(--ease-out-expo) both; }
+.step-track { transition: transform 280ms var(--ease-out-expo); transform-origin: left; }
+.nav-icon { transition: background-color 200ms ease, transform 200ms var(--ease-out-expo); }
+.nav-link[aria-current="page"] .nav-icon { background: var(--navy-tint); animation: nav-settle 260ms var(--ease-out-expo); }
+.nav-link:active .nav-icon { transform: scale(0.9); }
+.faq-item summary { cursor: pointer; list-style: none; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item[open] .faq-answer { animation: enter-page 220ms var(--ease-out-expo) both; }
+.faq-toggle { transition: transform 180ms ease; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); }
+.form-input { transition: border-color 180ms ease, background-color 180ms ease; }
+.form-input:focus { border-color: var(--navy); background-color: #f8faff; }
+.upload-zone { transition: border-color 180ms ease, background-color 180ms ease; }
+.upload-zone[data-dragging="true"] { border-color: var(--navy); background: var(--navy-tint); }
+.skeleton { background: var(--stone); animation: skeleton-breathe 1.6s ease-in-out infinite; }
+.spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 700ms linear infinite; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: skeleton-breathe 1.6s ease-in-out infinite; }
+
+@media (hover: hover) {
+  .ui-button:not(:disabled):hover { transform: translateY(-2px); }
+  .ui-button:not(:disabled):active { transform: scale(0.97); }
+  .interactive-row:hover { padding-left: 12px; }
+  .workflow-step:hover { border-color: var(--ash); transform: translateY(-2px); }
+  .nav-link:hover .nav-icon { background: var(--taupe); }
+}
+
+@keyframes enter-page { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes nav-settle { from { transform: translateY(3px); } to { transform: translateY(0); } }
+@keyframes skeleton-breathe { 50% { opacity: 0.45; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -96,4 +153,6 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .page-enter, .feedback-enter, .step-detail, .faq-answer, .nav-icon { animation: none !important; }
+  .ui-button, .workflow-step, .nav-icon { transform: none !important; }
 }
