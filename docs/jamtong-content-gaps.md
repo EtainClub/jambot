@@ -12,6 +12,20 @@
 
 ---
 
+## 0. 진행 상황 (2026-10-09)
+
+P1 다섯 주제가 모두 잼통 `src/content/policies`(정부 정책 팩트, 앵커 `policy:<slug>#<claimId>`)에 들어갔다.
+
+| # | 주제 | 잼통 정책 slug |
+|---|---|---|
+| 1 | 중동 위기 관련 소문 | `mideast-rumors` |
+| 2 | 고유가 피해지원금 | `oil-relief-fund` |
+| 3 | 부동산 대책 | `housing-measures` |
+| 4 | 검찰청 폐지 이후 | `prosecution-launch` |
+| 5 | 외국인 건강보험·투표권 | `foreigner-health-vote` |
+
+아래 1장의 "업적 claim으로 넣는다"는 제안 대신, 잼통은 정책 전용 층(policies)을 새로 두었다. factbase는 정책 claim 중 `verified: true`만 내보낸다.
+
 ## 1. 잼통 스키마에 맞추는 방법
 
 SNS 주장의 상당수는 "정부가 ○○을 한다더라" 같은 **소문**이다. 잼통에는 소문 전용 타입이

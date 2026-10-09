@@ -428,3 +428,16 @@ insta-factbot/
 - `moderator`를 둔 이유: 큐를 정리하는 손은 여럿이어도 되지만 사람을 운영자로 올리는 손은 적어야 한다.
 - 운영자 지정(`/members`, 관리자만): 구글을 연결한 사람 목록에서 역할을 고른다. 자기 역할은 못 바꾼다(관리자가 늘 한 명 이상 남는다). 해제는 문서를 지우지 않고 `active: false`로 둔다. 바꿀 때마다 `fc_member_log`에 남긴다.
 - 이메일 초대(`fc_invites/{email}`): 아직 구글을 연결하지 않은 사람에게 역할을 미리 적어 두면, 구글이 확인한 같은 이메일로 연결할 때 반영된다.
+
+## 16. 잼통 정부 정책 팩트 층 (2026-10-09)
+
+잼통이 업적·언행과 별도로 **정부 정책 팩트**(`src/content/policies`, 위키 `/wiki/policy/<slug>`)를 두었다.
+SNS에 도는 정책 주장과 소문을 정책 단위로 claim·출처·소문(rumors)·자료 공백(gaps)으로 정리한다.
+
+- factbase에는 `kind: "claim"`, 앵커 `policy:<slug>#<claimId>`로 들어온다. 팩트봇 스키마는 바꾸지 않았다.
+- 댓글 근거 링크는 `https://jamtong.kr/wiki/policy/<slug>`가 된다.
+- 정책은 미검증 claim을 허용하므로, 잼통 factbase는 정책 claim 중 `verified: true`만 내보낸다.
+  팩트봇은 받은 것을 그대로 근거로 쓰기 때문이다.
+- `docs/jamtong-content-gaps.md`의 P1 다섯 주제가 모두 이 층에 있다
+  (`mideast-rumors`, `oil-relief-fund`, `housing-measures`, `prosecution-launch`, `foreigner-health-vote`).
+- 이후 공백 등록(`factbot-gap` 이슈)은 업적보다 정책 팩트로 받는 것이 자연스럽다. 이슈 본문은 그대로 쓸 수 있다.
