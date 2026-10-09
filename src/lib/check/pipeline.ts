@@ -7,7 +7,7 @@ import { loadFactbase } from "@/lib/factbase/load";
 import { candidatesFor } from "@/lib/factbase/search";
 import type { FactEntry } from "@/lib/factbase/types";
 import { bucket, db } from "@/lib/firebase/admin";
-import { topicKey } from "@/lib/gaps/topic";
+import { syncGapsForPost } from "@/lib/gaps/store";
 import { fetchCaption } from "@/lib/instagram/oembed";
 import type { TaskStatus } from "@/lib/tasks/transitions";
 
@@ -15,9 +15,6 @@ import { composeComment } from "./comment";
 import { CHECK_MODEL, extract, judge, ModelRefusal, type PostImage } from "./model";
 import { COMMENTABLE, headlineVerdict, type Judgment } from "./types";
 import { validateJudgment } from "./validate";
-
-/** 잼통에 자료를 더해야 풀리는 판정. 공백 목록으로 간다. */
-const GAP_VERDICTS = new Set(["out_of_scope", "insufficient"]);
 
 /**
  * 게시물 하나를 판정한다.
@@ -107,33 +104,6 @@ async function settle(shortcode: string, outcome: Outcome): Promise<void> {
   });
 }
 
-async function recordGaps(shortcode: string, judgment: Judgment): Promise<void> {
-  const now = Date.now();
-  for (const claim of judgment.claims) {
-    if (!GAP_VERDICTS.has(claim.verdict) || !claim.gapTopic?.trim()) continue;
-    const ref = db().collection("fc_gaps").doc(topicKey(claim.gapTopic));
-    await db().runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      const data = snap.data();
-      const postIds: string[] = data?.postIds ?? [];
-      const isNew = !postIds.includes(shortcode);
-      tx.set(
-        ref,
-        {
-          topic: data?.topic ?? claim.gapTopic,
-          status: data?.status === "resolved" ? "open" : (data?.status ?? "open"),
-          count: (data?.count ?? 0) + (isNew ? 1 : 0),
-          postIds: isNew ? [...postIds, shortcode].slice(-50) : postIds,
-          examples: isNew ? [...(data?.examples ?? []), { postId: shortcode, claim: claim.claim }].slice(-10) : (data?.examples ?? []),
-          createdAt: data?.createdAt ?? now,
-          updatedAt: now,
-        },
-        { merge: true },
-      );
-    });
-  }
-}
-
 /** blocked: 선거 기간이나 오래된 게시물이라 일부러 댓글을 만들지 않은 경우. */
 function statusFor(judgment: Judgment, comment: string | null, blocked: boolean): Outcome["status"] {
   const verdicts = judgment.claims.map((c) => c.verdict);
@@ -214,7 +184,8 @@ export async function runCheck(shortcode: string): Promise<void> {
       return;
     }
 
-    await recordGaps(shortcode, judgment);
+    // 재판정이면 근거를 찾은 주장은 공백에서 빠지고, 비면 공백이 닫힌다.
+    await syncGapsForPost(shortcode, judgment);
     const status = statusFor(judgment, comment, config.electionFreeze || stale);
     const note = config.electionFreeze
       ? "선거 기간 차단으로 댓글 초안을 만들지 않았습니다."

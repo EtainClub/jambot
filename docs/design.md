@@ -441,3 +441,17 @@ SNS에 도는 정책 주장과 소문을 정책 단위로 claim·출처·소문(
 - `docs/jamtong-content-gaps.md`의 P1 다섯 주제가 모두 이 층에 있다
   (`mideast-rumors`, `oil-relief-fund`, `housing-measures`, `prosecution-launch`, `foreigner-health-vote`).
 - 이후 공백 등록(`factbot-gap` 이슈)은 업적보다 정책 팩트로 받는 것이 자연스럽다. 이슈 본문은 그대로 쓸 수 있다.
+
+## 17. 자료 공백의 생애 (2026-10-09)
+
+첫 실제 제보(브라질산 계란 수입)에서 드러난 두 가지를 고쳤다.
+
+- **한 주제가 여러 공백으로 갈라짐**: 원가와 판매가를 다룬 두 주장이 서로 다른 공백 둘이 됐다.
+  판정 지시문에 "같은 정책을 다루면 같은 gapTopic"을 넣고, 운영 관리자가 공백을 합칠 수 있게 했다(`merge`, 합쳐진 쪽은 `merged`).
+- **공백이 저절로 닫히지 않음**: 게시물을 판정할 때마다 그 게시물이 들어가야 할 공백을 다시 계산한다(`src/lib/gaps/plan.ts`).
+  재판정에서 근거를 찾은 게시물은 공백에서 빠지고, 게시물이 하나도 남지 않은 공백은 `resolved`(해결됨)로 닫힌다.
+  해결된 공백에 새 게시물이 오면 다시 열린다. 보류(`dismissed`)는 그대로 둔다.
+- `count`는 늘 `postIds.length`로 적는다.
+
+순환: 제보 → `out_of_scope`/`insufficient` → 공백 → 잼통 정책 팩트 등록·배포 → factbase 버전 변경 →
+`factbase-sync`가 자료 대기 작업 재판정 → 공백 해결, 작업은 게시 대기나 조치 없음으로.

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { errorResponse, HttpError, requireMember } from "@/lib/auth/member";
 import { db } from "@/lib/firebase/admin";
 import { createIssue } from "@/lib/gaps/github";
+import { mergeGaps } from "@/lib/gaps/store";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,8 @@ const bodySchema = z.discriminatedUnion("action", [
   /** 이슈를 따로 올렸을 때 주소만 적는다. */
   z.object({ action: z.literal("link"), issueUrl: z.string().url().max(500) }),
   z.object({ action: z.literal("dismiss"), reason: z.string().min(1).max(500) }),
+  /** 같은 주제로 갈라진 공백을 하나로 합친다. 이 공백이 into 쪽으로 들어간다. */
+  z.object({ action: z.literal("merge"), into: z.string().min(1).max(100) }),
 ]);
 
 export async function POST(request: Request, ctx: RouteContext<"/api/gaps/[key]">) {
@@ -49,6 +52,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/gaps/[key]"
       }
       case "link":
         await ref.update({ status: "requested", issueUrl: parsed.data.issueUrl, requestedBy: by, updatedAt: now });
+        return Response.json({ ok: true });
+      case "merge":
+        await mergeGaps(actor, key, parsed.data.into);
         return Response.json({ ok: true });
       case "dismiss":
         await ref.update({ status: "dismissed", dismissReason: parsed.data.reason, dismissedBy: by, updatedAt: now });

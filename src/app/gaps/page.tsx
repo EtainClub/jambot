@@ -20,6 +20,7 @@ interface Gap {
 const TABS = [
   { id: "open", label: "열림" },
   { id: "requested", label: "잼통에 요청함" },
+  { id: "resolved", label: "해결됨" },
   { id: "dismissed", label: "보류" },
 ];
 
@@ -89,7 +90,13 @@ function Gaps() {
       ) : (
         <div className="space-y-4">
           {gaps.map((g) => (
-            <GapCard key={g.key} gap={g} canAct={atLeast(member?.role ?? "contributor", "moderator")} onChange={load} />
+            <GapCard
+              key={g.key}
+              gap={g}
+              others={gaps.filter((o) => o.key !== g.key)}
+              canAct={atLeast(member?.role ?? "contributor", "moderator")}
+              onChange={load}
+            />
           ))}
         </div>
       )}
@@ -97,7 +104,18 @@ function Gaps() {
   );
 }
 
-function GapCard({ gap, canAct, onChange }: { gap: Gap; canAct: boolean; onChange: () => Promise<void> }) {
+function GapCard({
+  gap,
+  others,
+  canAct,
+  onChange,
+}: {
+  gap: Gap;
+  /** 같은 탭의 다른 공백. 합칠 대상으로 고른다. */
+  others: Gap[];
+  canAct: boolean;
+  onChange: () => Promise<void>;
+}) {
   const { api } = useAuth();
   const [urls, setUrls] = useState("");
   const [note, setNote] = useState("");
@@ -105,6 +123,7 @@ function GapCard({ gap, canAct, onChange }: { gap: Gap; canAct: boolean; onChang
   const [issueUrl, setIssueUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState("");
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -187,6 +206,34 @@ function GapCard({ gap, canAct, onChange }: { gap: Gap; canAct: boolean; onChang
               보류
             </Button>
           </div>
+          {others.length ? (
+            <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+              <select
+                className="flex-1 rounded-full border border-stone bg-eggshell px-3 py-1.5 text-[13px]"
+                value={mergeTarget}
+                onChange={(e) => setMergeTarget(e.target.value)}
+                aria-label="합칠 공백"
+              >
+                <option value="">같은 주제의 다른 공백에 합치기…</option>
+                {others.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.topic} ({o.count}건)
+                  </option>
+                ))}
+              </select>
+              <Button
+                disabled={busy || !mergeTarget}
+                onClick={() => {
+                  const target = others.find((o) => o.key === mergeTarget);
+                  if (target && confirm(`'${gap.topic}'을(를) '${target.topic}'에 합칠까요?`)) {
+                    void post({ action: "merge", into: mergeTarget });
+                  }
+                }}
+              >
+                합치기
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
