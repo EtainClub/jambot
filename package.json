@@ -11,7 +11,8 @@
     "test": "node --import tsx --test 'src/**/*.test.ts'",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "grant-member": "tsx --env-file=.env.local scripts/grant-member.mts",
-    "smoke": "node --conditions=react-server --env-file=.env.local --import tsx scripts/smoke-judge.mts"
+    "smoke": "node --conditions=react-server --env-file=.env.local --import tsx scripts/smoke-judge.mts",
+    "report-post": "node --conditions=react-server --env-file=.env.local --import tsx scripts/report-post.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
