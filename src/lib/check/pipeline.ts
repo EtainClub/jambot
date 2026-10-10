@@ -194,9 +194,24 @@ export async function runCheck(shortcode: string): Promise<void> {
         : "판정 완료";
     await settle(shortcode, { status, note, check });
   } catch (error) {
-    const note =
-      error instanceof ModelRefusal ? error.message : `판정 중 오류: ${error instanceof Error ? error.message : String(error)}`;
+    const note = error instanceof ModelRefusal ? error.message : failureNote(error);
     console.error(`[pipeline] ${shortcode}`, error);
     await settle(shortcode, { status: "needs_review", note });
   }
+}
+
+/**
+ * 판정 실패를 운영자 화면에 남길 말. 오류 원문(API 응답 JSON 등)은 화면에 내지 않고
+ * 서버 로그에만 남긴다 — 운영자가 할 일은 어느 경우든 "잠시 뒤 재판정"이다.
+ */
+export function failureNote(error: unknown): string {
+  const status = (error as { status?: number }).status;
+  const message = error instanceof Error ? error.message : String(error);
+  const reason =
+    /credit balance/i.test(message)
+      ? "모델 사용 크레딧 부족"
+      : status === 429 || status === 529 || /overloaded|rate limit/i.test(message)
+        ? "모델 사용량 초과·혼잡"
+        : "일시적인 오류";
+  return `판정하지 못했습니다(${reason}). 잠시 뒤 재판정해 주세요.`;
 }
