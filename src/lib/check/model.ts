@@ -17,7 +17,7 @@ import { extractionSchema, judgmentSchema, type Extraction, type Judgment } from
  * 무엇을 찾을지 알 수 있다.
  */
 
-export const CHECK_MODEL = process.env.CHECK_MODEL ?? "claude-opus-5-5";
+export const CHECK_MODEL = process.env.CHECK_MODEL ?? "claude-sonnet-5-5";
 
 /** 모델이 거절하면 사람에게 넘긴다. 재시도해도 같은 답이 나온다. */
 export class ModelRefusal extends Error {}

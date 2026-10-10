@@ -54,7 +54,7 @@ env:
     value: https://jamtong.kr/factbase.json
     availability: [RUNTIME]
   - variable: CHECK_MODEL
-    value: claude-opus-5-5
+    value: claude-sonnet-5-5
     availability: [RUNTIME]
   - variable: REPORT_IP_LIMIT
     value: "10"

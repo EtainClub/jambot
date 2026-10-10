@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { db } from "@/lib/firebase/admin";
 import { HttpError } from "@/lib/auth/member";
+import { getConfig } from "@/lib/config";
 
 import { applyAction, expire, type Actor, type TaskAction, type TaskState } from "./transitions";
 
@@ -26,7 +27,35 @@ function stateOf(data: FirebaseFirestore.DocumentData): TaskState {
   };
 }
 
+/** 한국 시간 오늘 0시(ms). */
+export function kstDayStart(now: number): number {
+  const KST = 9 * 3_600_000;
+  return Math.floor((now + KST) / 86_400_000) * 86_400_000 - KST;
+}
+
+/**
+ * 오늘 게시한 수와 지금 쥐고 있는 수락을 합쳐 상한을 넘는지 본다.
+ * 수락 시점에 막는다 — 이미 인스타그램에 단 댓글의 기록은 막지 않는다.
+ * 트랜잭션 밖이라 동시에 누르면 한두 건 넘을 수 있다. 상한은 느슨한 안전장치다.
+ */
+async function assertDailyQuota(actor: Actor): Promise<void> {
+  const { dailyPostLimit } = await getConfig();
+  const [posted, held] = await Promise.all([
+    tasks()
+      .where("postedBy", "==", actor.uid)
+      .where("postedAt", ">=", kstDayStart(Date.now()))
+      .orderBy("postedAt", "desc")
+      .count()
+      .get(),
+    tasks().where("status", "==", "claimed").where("assignee", "==", actor.uid).count().get(),
+  ]);
+  if (posted.data().count + held.data().count >= dailyPostLimit) {
+    throw new HttpError(429, `오늘 게시 상한(${dailyPostLimit}건)에 닿았습니다. 내일 다시 수락해 주세요.`);
+  }
+}
+
 export async function runTaskAction(id: string, action: TaskAction, actor: Actor): Promise<void> {
+  if (action.type === "claim") await assertDailyQuota(actor);
   const ref = tasks().doc(id);
   await db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);

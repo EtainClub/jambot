@@ -391,11 +391,11 @@ insta-factbot/
 | 작업 상태 | `drafted` 포함 | `drafted` 없음. `processing`·`no_action`·`no_content` 추가 | 수락 중 편집은 `claimed` 안에서 저장으로 충분. 판정 결과별 종착 상태가 필요 |
 | 공백 적재 | `out_of_scope`만 | `insufficient`도 `gapTopic`이 있으면 적재 | 관련 근거는 있지만 모자란 것도 잼통에 채워야 풀린다 |
 | 성과 카드 앵커 | — | `milestone:<id>` 신설 | 위키 앵커 다섯 형식에 카드가 없다 |
-| 모델 | 선별 Haiku + 판정 Sonnet | `CHECK_MODEL` 하나(기본 `claude-opus-5-5`), 읽기는 effort low, 판정은 medium | 단계별 모델 분리는 실제 비용을 본 뒤 결정 |
+| 모델 | 선별 Haiku + 판정 Sonnet | `CHECK_MODEL` 하나(기본 `claude-sonnet-5-5`), 읽기는 effort low, 판정은 medium | 처음엔 Opus 5.5. 2026-10-10 비용 때문에 Sonnet으로 낮춤. 같은 게시물 비교에서 판정·댓글 품질 차이가 작았고, Haiku는 공개 댓글에 불확실한 말을 넣어 제외 |
 | 본문 확보 | oEmbed 우선 | oEmbed는 `INSTAGRAM_OEMBED_TOKEN`이 있을 때만, 실제 응답 필드는 미검증. 기본은 스크린샷 | Meta 앱 미등록 |
 | 제보만 있고 캡션·스크린샷 없음 | — | `no_content` | 제보자가 적은 주장이 게시물에 정말 있는지 모른다 |
 | App Check | 미인증 제보에 적용 | **미구현**. IP·일일 한도(Firestore 카운터)만 | 다음 단계 |
-| 계정별 일일 게시 상한 | `dailyPostLimit` | **미구현** | 다음 단계 |
+| 계정별 일일 게시 상한 | `dailyPostLimit` | 운영자(uid)별, 수락 시점에 셈. 오늘(KST) 게시 + 쥐고 있는 수락 ≥ 상한이면 429 | 기록은 막지 않는다. 이미 단 댓글의 게시 완료를 거절하면 기록만 사라진다 |
 | FCM 알림 | 6단계 | **미구현** | 다음 단계 |
 | 수집 B·A | 7·8단계 | **미구현** | Meta 심사 이후 |
 
