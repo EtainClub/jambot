@@ -1,6 +1,6 @@
 import "server-only";
 
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldPath, FieldValue } from "firebase-admin/firestore";
 
 import type { User } from "@/lib/auth/member";
 import { adminAuth, db } from "@/lib/firebase/admin";
@@ -92,6 +92,13 @@ export async function deleteAccount(uid: string): Promise<{ unlinkedReports: num
     }
     await batch.commit();
   }
+  // 시간당 제보 한도 카운터(문서 id가 user_<uid>_<시각>)도 지운다.
+  const counters = await db()
+    .collection("fc_counters")
+    .where(FieldPath.documentId(), ">=", `user_${uid}_`)
+    .where(FieldPath.documentId(), "<", `user_${uid}_\uf8ff`)
+    .get();
+  await Promise.all(counters.docs.map((d) => d.ref.delete()));
   await users().doc(uid).delete();
   await adminAuth().deleteUser(uid);
   return { unlinkedReports: reports.size };

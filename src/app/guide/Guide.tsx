@@ -445,6 +445,11 @@ function Install() {
           아래 공유 버튼 □↑ → <b>홈 화면에 추가</b>.
         </Rule>
       </div>
+      <p className="mt-10 text-[12px] text-smoke">
+        <Link href="/privacy" className="underline underline-offset-2">
+          개인정보 처리방침
+        </Link>
+      </p>
     </section>
   );
 }

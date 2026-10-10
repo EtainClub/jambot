@@ -61,7 +61,10 @@ function My() {
         </Heading>
         <LinkButton />
         <p className="mt-6 max-w-[34em] text-[13px] leading-relaxed text-smoke">
-          연결하면 구글 계정의 이메일과 이름만 받습니다. 연락처나 다른 정보는 받지 않으며, 언제든 이 화면에서 탈퇴할 수 있습니다.
+          연결하면 구글 계정의 이메일과 이름만 받습니다. 연락처나 다른 정보는 받지 않으며, 언제든 이 화면에서 탈퇴할 수 있습니다.{" "}
+          <Link href="/privacy" className="underline underline-offset-2">
+            개인정보 처리방침
+          </Link>
         </p>
         <Link href="/guide" className="ui-button mt-4 inline-block text-[13px] font-semibold underline underline-offset-4">
           처음이라면 사용법 보기 <span aria-hidden="true">→</span>
@@ -394,6 +397,9 @@ function Account() {
           <Button disabled={busy} onClick={() => void remove()} className="hover:border-burgundy hover:text-burgundy">
             탈퇴
           </Button>
+          <Link href="/privacy" className="ui-button ml-auto self-center text-[12px] text-smoke underline underline-offset-2">
+            개인정보 처리방침
+          </Link>
         </div>
         {member ? (
           <p className="mt-3 text-[12px] text-smoke">운영자 계정은 운영 기록 보존을 위해 관리자가 운영자 해제를 먼저 해야 탈퇴할 수 있습니다.</p>

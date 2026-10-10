@@ -154,8 +154,12 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
       </fieldset>
 
       <p className="text-[12px] leading-relaxed text-smoke">
-        제보하면 주소·주장·메모·스크린샷과 내 계정이 함께 저장됩니다. 남용을 막기 위해 접속 지점은 되돌릴 수 없는 값(해시)으로만
-        남깁니다. 내 기록에서 언제든 확인하고 탈퇴할 수 있습니다.
+        제보하면 주소·주장·메모·스크린샷과 내 계정이 함께 저장됩니다. 게시물 글·스크린샷·주장은 판정을 위해 AI 모델(Anthropic, 미국)로
+        보내집니다. 이메일과 메모는 보내지 않습니다. 남용을 막기 위해 접속 지점은 되돌릴 수 없는 값(해시)으로만 남깁니다. 내 기록에서
+        언제든 확인하고 탈퇴할 수 있습니다.{" "}
+        <Link href="/privacy" className="underline underline-offset-2">
+          개인정보 처리방침
+        </Link>
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
