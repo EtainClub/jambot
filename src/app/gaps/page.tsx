@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Shell } from "@/components/Shell";
-import { Button, Card, ErrorLine, formatTime, Heading } from "@/components/ui";
+import { Button, ErrorLine, Fold, formatTime, Heading } from "@/components/ui";
 import { useAuth } from "@/lib/firebase/auth";
 import { atLeast } from "@/lib/tasks/transitions";
 
@@ -88,7 +88,7 @@ function Gaps() {
       ) : gaps.length === 0 ? (
         <p className="text-[14px] text-smoke">없습니다.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="divide-y divide-stone border-y border-stone">
           {gaps.map((g) => (
             <GapCard
               key={g.key}
@@ -142,12 +142,17 @@ function GapCard({
   }
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h2 className="text-[20px] font-light tracking-[-0.01em]">{gap.topic}</h2>
-        <span className="font-mono text-[13px] text-graphite tabular">{gap.count}건</span>
-        <span className="ml-auto text-[12px] text-ash tabular">{formatTime(gap.updatedAt)}</span>
-      </div>
+    <Fold
+      className="py-4"
+      summary={
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{gap.topic}</h2>
+          <span className="font-mono text-[13px] text-graphite tabular">{gap.count}건</span>
+          {gap.issueUrl ? <span className="text-[12px] text-smoke">이슈 있음</span> : null}
+          <span className="ml-auto text-[12px] text-ash tabular">{formatTime(gap.updatedAt)}</span>
+        </div>
+      }
+    >
       <ul className="mt-3 space-y-1 text-[13px] text-graphite">
         {gap.examples.slice(-3).map((e) => (
           <li key={e.postId}>
@@ -256,6 +261,6 @@ function GapCard({
         </div>
       ) : null}
       <ErrorLine message={error} />
-    </Card>
+    </Fold>
   );
 }

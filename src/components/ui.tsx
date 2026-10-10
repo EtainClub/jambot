@@ -25,6 +25,34 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
   return <section className={`surface-card rounded-[20px] border border-stone bg-eggshell p-5 sm:p-8 ${className}`}>{children}</section>;
 }
 
+/**
+ * 접히는 묶음. 머리(summary)만 보이고 눌러야 내용이 열린다.
+ * 닫혀도 내용은 그대로 마운트돼 있어 입력 중인 값이 날아가지 않는다.
+ */
+export function Fold({
+  summary,
+  children,
+  defaultOpen = false,
+  className = "",
+}: {
+  summary: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  return (
+    <details open={defaultOpen} className={`faq-item ${className}`}>
+      <summary className="flex min-h-6 items-center gap-3">
+        <div className="min-w-0 flex-1">{summary}</div>
+        <span className="faq-toggle text-[20px] font-light leading-none text-smoke" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <div className="faq-answer">{children}</div>
+    </details>
+  );
+}
+
 export function Heading({ children, lede }: { children: React.ReactNode; lede?: React.ReactNode }) {
   return (
     <header className="mb-8">

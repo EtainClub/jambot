@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { LinkButton, Shell } from "@/components/Shell";
-import { Button, Card, ErrorLine, formatTime, Heading, StatusTag, VerdictBadge } from "@/components/ui";
+import { Button, Card, ErrorLine, Fold, formatTime, Heading, StatusTag, VerdictBadge } from "@/components/ui";
 import type { Verdict } from "@/lib/check/types";
 import { useAuth } from "@/lib/firebase/auth";
 import type { Outcome } from "@/lib/outcome";
@@ -74,19 +74,21 @@ function My() {
     <div className="space-y-12">
       <Heading lede="내 계정에 저장된 정보와 내가 한 일입니다.">내 기록</Heading>
       <Dashboard member={Boolean(auth.member)} />
-      {auth.member?.role === "admin" ? (
-        <Link
-          href="/members"
-          className="block rounded-[20px] border border-stone p-5 hover:border-graphite"
-        >
-          <span className="text-[15px] font-semibold">운영자 관리</span>
-          <span className="mt-1 block text-[13px] text-smoke">구글을 연결한 사람에게 검토자·운영 관리자·관리자 역할을 줍니다.</span>
-        </Link>
-      ) : null}
-      <Link href="/guide" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
-        <span className="text-[15px] font-semibold">사용법</span>
-        <span className="mt-1 block text-[13px] text-smoke">제보하는 법, 운영자가 댓글을 붙여넣고 게시 완료하는 법을 그림으로 봅니다.</span>
-      </Link>
+      <section>
+        <h2 className="mb-4 text-[20px] font-light tracking-[-0.01em]">바로가기</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {auth.member?.role === "admin" ? (
+            <Link href="/members" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
+              <span className="text-[15px] font-semibold">운영자 관리</span>
+              <span className="mt-1 block text-[13px] text-smoke">구글을 연결한 사람에게 검토자·운영 관리자·관리자 역할을 줍니다.</span>
+            </Link>
+          ) : null}
+          <Link href="/guide" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
+            <span className="text-[15px] font-semibold">사용법</span>
+            <span className="mt-1 block text-[13px] text-smoke">제보하는 법, 운영자가 댓글을 붙여넣고 게시 완료하는 법을 그림으로 봅니다.</span>
+          </Link>
+        </div>
+      </section>
       <Account />
     </div>
   );
@@ -156,6 +158,11 @@ function Summary({ work }: { work: Work | null | undefined }) {
 
 function Reports() {
   const { data, error } = useLoad<{ reports: MyReport[] }>("/api/my/reports");
+  const groups = data
+    ? REPORT_GROUPS.map((g) => ({ ...g, rows: data.reports.filter((r) => g.stages.includes(r.outcome.stage)) })).filter(
+        (g) => g.rows.length,
+      )
+    : [];
   return (
     <section>
       <div className="mb-4 flex items-baseline justify-between">
@@ -170,56 +177,80 @@ function Reports() {
       ) : data.reports.length === 0 ? (
         <p className="text-[14px] text-smoke">아직 제보한 게시물이 없습니다.</p>
       ) : (
-        <ul className="space-y-4">
-          {data.reports.map((r) => (
-            <li key={r.id}>
-              <Card>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${r.outcome.stage === "done" ? "bg-ink text-eggshell" : "bg-taupe text-graphite"}`}
-                  >
-                    {r.outcome.label}
-                  </span>
-                  <VerdictBadge verdict={r.outcome.verdict} />
-                  <a href={r.url} target="_blank" rel="noreferrer" className="font-mono text-[12px] text-smoke underline">
-                    {r.shortcode}
-                  </a>
-                  <span className="ml-auto text-[12px] text-ash tabular">{formatTime(r.createdAt)}</span>
-                </div>
-                {r.claim ? <p className="mt-3 text-[14px]">“{r.claim}”</p> : null}
-                {r.memo ? <p className="mt-1 text-[13px] text-smoke">메모: {r.memo}</p> : null}
-                {r.imageCount ? <p className="mt-1 text-[12px] text-ash">스크린샷 {r.imageCount}장</p> : null}
-
-                {r.outcome.comment ? (
-                  <div className="mt-4 border-t border-stone pt-4">
-                    <h3 className="text-[12px] font-semibold text-smoke">게시한 근거 안내</h3>
-                    <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.comment}</p>
-                    {r.outcome.postedUrl ? (
-                      <a href={r.outcome.postedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] text-smoke underline">
-                        인스타그램에서 보기
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-                {r.outcome.reply ? (
-                  <div className="mt-4 border-t border-stone pt-4">
-                    <h3 className="text-[12px] font-semibold text-smoke">
-                      운영자 답변 <span className="font-normal text-ash tabular">{formatTime(r.outcome.replyAt)}</span>
-                    </h3>
-                    <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.reply}</p>
-                  </div>
-                ) : null}
-                {r.outcome.stage === "waiting" ? (
-                  <p className="mt-4 text-[13px] text-smoke">
-                    잼통에 아직 근거가 없는 주제입니다. 자료가 등록되면 다시 확인합니다.
-                  </p>
-                ) : null}
-              </Card>
-            </li>
+        <div className="divide-y divide-stone border-y border-stone">
+          {groups.map((g, i) => (
+            <Fold key={g.title} className="py-4" defaultOpen={i === 0} summary={<GroupTitle title={g.title} count={g.rows.length} />}>
+              <ul className="mt-2 divide-y divide-stone">
+                {g.rows.map((r) => (
+                  <li key={r.id}>
+                    <ReportRow r={r} />
+                  </li>
+                ))}
+              </ul>
+            </Fold>
           ))}
-        </ul>
+        </div>
       )}
     </section>
+  );
+}
+
+const REPORT_GROUPS: { title: string; stages: Outcome["stage"][] }[] = [
+  { title: "처리 중", stages: ["checking", "reviewing"] },
+  { title: "잼통 자료 대기", stages: ["waiting"] },
+  { title: "처리 끝", stages: ["done"] },
+];
+
+function GroupTitle({ title, count }: { title: string; count: number }) {
+  return (
+    <span className="text-[14px] font-semibold">
+      {title} <span className="ml-1 font-mono font-normal text-smoke tabular">{count}</span>
+    </span>
+  );
+}
+
+function ReportRow({ r }: { r: MyReport }) {
+  return (
+    <div className="py-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${r.outcome.stage === "done" ? "bg-ink text-eggshell" : "bg-taupe text-graphite"}`}
+        >
+          {r.outcome.label}
+        </span>
+        <VerdictBadge verdict={r.outcome.verdict} />
+        <a href={r.url} target="_blank" rel="noreferrer" className="font-mono text-[12px] text-smoke underline">
+          {r.shortcode}
+        </a>
+        <span className="ml-auto text-[12px] text-ash tabular">{formatTime(r.createdAt)}</span>
+      </div>
+      {r.claim ? <p className="mt-3 text-[14px]">“{r.claim}”</p> : null}
+      {r.memo ? <p className="mt-1 text-[13px] text-smoke">메모: {r.memo}</p> : null}
+      {r.imageCount ? <p className="mt-1 text-[12px] text-ash">스크린샷 {r.imageCount}장</p> : null}
+
+      {r.outcome.comment ? (
+        <div className="mt-3 rounded-[10px] bg-taupe/60 p-3">
+          <h3 className="text-[12px] font-semibold text-smoke">게시한 근거 안내</h3>
+          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.comment}</p>
+          {r.outcome.postedUrl ? (
+            <a href={r.outcome.postedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] text-smoke underline">
+              인스타그램에서 보기
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+      {r.outcome.reply ? (
+        <div className="mt-3 rounded-[10px] bg-taupe/60 p-3">
+          <h3 className="text-[12px] font-semibold text-smoke">
+            운영자 답변 <span className="font-normal text-ash tabular">{formatTime(r.outcome.replyAt)}</span>
+          </h3>
+          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.reply}</p>
+        </div>
+      ) : null}
+      {r.outcome.stage === "waiting" ? (
+        <p className="mt-3 text-[13px] text-smoke">잼통에 아직 근거가 없는 주제입니다. 자료가 등록되면 다시 확인합니다.</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -236,16 +267,13 @@ function MyWork({ data, error }: { data: Work | null; error: string | null }) {
       <h2 className="mb-4 text-[20px] font-light tracking-[-0.01em]">내가 한 운영 작업</h2>
       <ErrorLine message={error} />
       {!data && !error ? <p className="text-[14px] text-smoke">불러오는 중…</p> : null}
-      <div className="space-y-8">
-        {groups.map((g) => (
-          <div key={g.title}>
-            <h3 className="mb-2 text-[13px] font-semibold text-smoke">
-              {g.title} <span className="font-mono font-normal tabular">{g.rows.length}</span>
-            </h3>
+      <div className="divide-y divide-stone border-y border-stone">
+        {groups.map((g, i) => (
+          <Fold key={g.title} className="py-4" defaultOpen={i === 0 && g.rows.length > 0} summary={<GroupTitle title={g.title} count={g.rows.length} />}>
             {g.rows.length === 0 ? (
-              <p className="text-[13px] text-ash">{g.empty}</p>
+              <p className="mt-2 text-[13px] text-ash">{g.empty}</p>
             ) : (
-              <ul className="divide-y divide-stone border-y border-stone">
+              <ul className="mt-2 divide-y divide-stone">
                 {g.rows.map((t) => (
                   <li key={t.id}>
                     <Link href={`/tasks/${t.id}`} className="block py-3 hover:bg-taupe/60 sm:px-2">
@@ -265,7 +293,7 @@ function MyWork({ data, error }: { data: Work | null; error: string | null }) {
                 ))}
               </ul>
             )}
-          </div>
+          </Fold>
         ))}
       </div>
     </section>
@@ -320,18 +348,28 @@ function Account() {
     <section>
       <h2 className="mb-4 text-[20px] font-light tracking-[-0.01em]">내 정보</h2>
       <Card>
-        <p className="text-[13px] leading-relaxed text-smoke">
-          아래가 이 서비스가 내 계정에 대해 저장하는 정보 전부입니다. 제보 내용(주소·주장·메모·스크린샷)은 위 제보 목록에 있는
-          그대로입니다.
-        </p>
-        <dl className="mt-5 grid grid-cols-[8em_1fr] gap-y-2 text-[14px]">
-          {rows.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-smoke">{k}</dt>
-              <dd className="break-all">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        <Fold
+          summary={
+            <span className="flex flex-wrap items-baseline gap-x-3">
+              <span className="text-[15px] font-semibold">{profile.displayName}</span>
+              <span className="text-[13px] text-smoke">{ROLE_LABEL[me?.role ?? "contributor"]}</span>
+              <span className="ml-auto text-[12px] text-ash">저장된 정보 전부 보기</span>
+            </span>
+          }
+        >
+          <p className="mt-4 text-[13px] leading-relaxed text-smoke">
+            아래가 이 서비스가 내 계정에 대해 저장하는 정보 전부입니다. 제보 내용(주소·주장·메모·스크린샷)은 위 제보 목록에 있는
+            그대로입니다.
+          </p>
+          <dl className="mt-5 grid grid-cols-[8em_1fr] gap-y-2 text-[14px]">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="text-smoke">{k}</dt>
+                <dd className="break-all">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </Fold>
 
         <div className="mt-6 border-t border-stone pt-5">
           <label className="block text-[13px] font-semibold" htmlFor="display-name">
