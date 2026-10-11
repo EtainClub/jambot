@@ -14,6 +14,7 @@ import { fetchCaption } from "@/lib/instagram/oembed";
 import type { TaskStatus } from "@/lib/tasks/transitions";
 
 import { composeComment } from "./comment";
+import { failureNote, isTransient, MAX_ATTEMPTS } from "./failure";
 import { CHECK_MODEL, extract, judge, ModelRefusal, type PostImage } from "./model";
 import { COMMENTABLE, headlineVerdict, type Judgment } from "./types";
 import { validateJudgment } from "./validate";
@@ -44,6 +45,9 @@ const PIPELINE_OWNED: ReadonlySet<TaskStatus> = new Set([
   "no_content",
 ]);
 
+/** 판정 하나가 길어야 1~2분이다. 이보다 오래 processing이면 멈춘 것으로 본다. */
+const STUCK_MS = 15 * 60_000;
+
 const posts = () => db().collection("fc_posts");
 const tasks = () => db().collection("fc_tasks");
 
@@ -67,6 +71,11 @@ interface Outcome {
   status: TaskStatus;
   note: string;
   check?: Record<string, unknown>;
+  /**
+   * 연속 시도 횟수. 판정을 시작할 때 하나 올리고, 판정이 끝나면(성공이든 사람에게 넘기든) 0으로 돌린다.
+   * 시작할 때 세므로 인스턴스가 내려가 실패 처리조차 못 한 경우도 들어간다.
+   */
+  attempts?: number;
 }
 
 async function settle(shortcode: string, outcome: Outcome): Promise<void> {
@@ -100,6 +109,7 @@ async function settle(shortcode: string, outcome: Outcome): Promise<void> {
             }
           : {}),
         pipelineNote: outcome.note,
+        checkAttempts: outcome.attempts ?? 0,
         updatedAt: now,
         history: FieldValue.arrayUnion({ at: now, uid: "system", name: "판정", action: "pipeline", note: outcome.note }),
       },
@@ -123,8 +133,10 @@ function statusFor(judgment: Judgment, comment: string | null, blocked: boolean)
 }
 
 export async function runCheck(shortcode: string): Promise<void> {
+  const before = (await tasks().doc(shortcode).get()).data();
+  const attempts = ((before?.checkAttempts as number | undefined) ?? 0) + 1;
   try {
-    await settle(shortcode, { status: "processing", note: "판정 중" });
+    await settle(shortcode, { status: "processing", note: "판정 중", attempts });
     const post = (await posts().doc(shortcode).get()).data();
     if (!post) throw new Error(`게시물이 없습니다: ${shortcode}`);
 
@@ -200,24 +212,54 @@ export async function runCheck(shortcode: string): Promise<void> {
         : "판정 완료";
     await settle(shortcode, { status, note, check });
   } catch (error) {
-    const note = error instanceof ModelRefusal ? error.message : failureNote(error);
     console.error(`[pipeline] ${shortcode}`, error);
-    await settle(shortcode, { status: "needs_review", note });
+    if (error instanceof ModelRefusal) {
+      await settle(shortcode, { status: "needs_review", note: error.message });
+      return;
+    }
+    if (!isTransient(error) || attempts >= MAX_ATTEMPTS) {
+      await settle(shortcode, { status: "needs_review", note: failureNote(error) });
+      return;
+    }
+    await settle(shortcode, { status: retryStatus(before?.status), note: failureNote(error, true), attempts });
   }
 }
 
 /**
- * 판정 실패를 운영자 화면에 남길 말. 오류 원문(API 응답 JSON 등)은 화면에 내지 않고
- * 서버 로그에만 남긴다 — 운영자가 할 일은 어느 경우든 "잠시 뒤 재판정"이다.
+ * 일시적인 실패 뒤 돌아갈 상태.
+ *
+ *   자료 대기·게시 대기 등 판정이 끝나 있던 작업 → 그 상태 그대로. 초안도 그대로 남는다.
+ *     자료 대기는 factbase-sync가 버전이 다른 것을 보고 다시 판정한다.
+ *   처음 판정이던 작업(processing) → processing. 멈춘 판정 복구(recoverStuck)가 다시 돌린다.
  */
-export function failureNote(error: unknown): string {
-  const status = (error as { status?: number }).status;
-  const message = error instanceof Error ? error.message : String(error);
-  const reason =
-    /credit balance/i.test(message)
-      ? "모델 사용 크레딧 부족"
-      : status === 429 || status === 529 || /overloaded|rate limit/i.test(message)
-        ? "모델 사용량 초과·혼잡"
-        : "일시적인 오류";
-  return `판정하지 못했습니다(${reason}). 잠시 뒤 재판정해 주세요.`;
+function retryStatus(previous: unknown): TaskStatus {
+  const status = previous as TaskStatus | undefined;
+  return status && status !== "processing" && PIPELINE_OWNED.has(status) ? status : "processing";
 }
+
+/**
+ * 판정 중(processing)에 멈춘 작업을 다시 판정한다.
+ *
+ * 제보 판정은 응답을 보낸 뒤 after()로 돈다. 그 사이 인스턴스가 내려가거나
+ * 일시적인 실패로 processing에 남은 작업은 아무도 다시 부르지 않는다.
+ * expire-claims(5분마다, 마감 60초)가 부른다. 판정 하나가 10~20초라 budgetMs 안에서
+ * 시작할 수 있는 만큼만 돌리고 나머지는 다음 회차로 넘긴다.
+ */
+export async function recoverStuck(now = Date.now(), budgetMs = 25_000): Promise<{ stuck: number; rechecked: number }> {
+  const snap = await tasks().where("status", "==", "processing").get();
+  const stuck = snap.docs
+    .filter((d) => ((d.data().updatedAt as number | undefined) ?? 0) < now - STUCK_MS)
+    .sort((a, b) => (a.data().updatedAt ?? 0) - (b.data().updatedAt ?? 0));
+  let rechecked = 0;
+  for (const doc of stuck) {
+    if (Date.now() - now > budgetMs) break;
+    if (((doc.data().checkAttempts as number | undefined) ?? 0) >= MAX_ATTEMPTS) {
+      await settle(doc.id, { status: "needs_review", note: "여러 번 판정하지 못했습니다. 재판정해 주세요." });
+      continue;
+    }
+    await runCheck(doc.id);
+    rechecked++;
+  }
+  return { stuck: stuck.length, rechecked };
+}
+
