@@ -3,6 +3,8 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 
 import { getConfig } from "@/lib/config";
+import { planNotices } from "@/lib/notify/plan";
+import { deliver } from "@/lib/notify/send";
 import { loadFactbase } from "@/lib/factbase/load";
 import { candidatesFor } from "@/lib/factbase/search";
 import type { FactEntry } from "@/lib/factbase/types";
@@ -76,15 +78,17 @@ async function settle(shortcode: string, outcome: Outcome): Promise<void> {
     checkId = ref.id;
   }
 
-  await db().runTransaction(async (tx) => {
+  const plan = await db().runTransaction(async (tx) => {
     const snap = await tx.get(taskRef);
     const current = snap.data()?.status as TaskStatus | undefined;
     const owned = !current || PIPELINE_OWNED.has(current);
     const check = outcome.check ?? {};
+    const notices = owned ? planNotices(snap.data(), outcome.status, shortcode, now) : null;
     tx.set(
       taskRef,
       {
         ...(owned ? { status: outcome.status } : {}),
+        ...(notices?.patch ?? {}),
         ...(checkId
           ? {
               latestCheckId: checkId,
@@ -101,7 +105,9 @@ async function settle(shortcode: string, outcome: Outcome): Promise<void> {
       },
       { merge: true },
     );
+    return notices;
   });
+  if (plan) await deliver(shortcode, plan);
 }
 
 /** blocked: 선거 기간이나 오래된 게시물이라 일부러 댓글을 만들지 않은 경우. */

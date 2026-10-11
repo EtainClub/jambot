@@ -30,6 +30,42 @@ const OFFLINE_HTML = `<!doctype html>
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
+/*
+ * 푸시 알림. 서버(src/lib/notify/send.ts)는 데이터 메시지만 보낸다:
+ * { data: { title, body, link } }. 알림 모양과 누를 때 동작은 여기서 정한다.
+ */
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+  const data = payload.data || payload;
+  const title = data.title || (payload.notification && payload.notification.title) || "잼통 신고 센터";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || (payload.notification && payload.notification.body) || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { link: data.link || "/my" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.link) || "/my", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if (w.url.startsWith(self.location.origin) && "navigate" in w) return w.focus().then(() => w.navigate(url));
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   if (event.request.mode !== "navigate") return;
   event.respondWith(

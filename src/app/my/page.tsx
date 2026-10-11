@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/firebase/auth";
 import type { Outcome } from "@/lib/outcome";
 import { ROLE_LABEL } from "@/lib/tasks/transitions";
 
+import { PushCard } from "./PushCard";
+
 interface MyReport {
   id: string;
   shortcode: string;
@@ -92,6 +94,7 @@ function My() {
           </Link>
         </div>
       </section>
+      <PushCard />
       <Account />
     </div>
   );
@@ -344,6 +347,7 @@ function Account() {
     ["구글 연결", formatTime(profile.linkedAt)],
     ["마지막 변경", formatTime(profile.updatedAt)],
     ["제보 수", String(profile.reportCount)],
+    ["알림 받는 기기", `${profile.pushTokens?.length ?? 0}대`],
     ["역할", ROLE_LABEL[me?.role ?? "contributor"]],
   ];
 

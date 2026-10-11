@@ -5,6 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase/admin";
 import { HttpError } from "@/lib/auth/member";
 import { getConfig } from "@/lib/config";
+import { planNotices, replyNotice, type NoticePlan } from "@/lib/notify/plan";
+import { deliver } from "@/lib/notify/send";
 
 import { applyAction, expire, type Actor, type TaskAction, type TaskState } from "./transitions";
 
@@ -57,13 +59,19 @@ async function assertDailyQuota(actor: Actor): Promise<void> {
 export async function runTaskAction(id: string, action: TaskAction, actor: Actor): Promise<void> {
   if (action.type === "claim") await assertDailyQuota(actor);
   const ref = tasks().doc(id);
-  await db().runTransaction(async (tx) => {
+  const plan = await db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpError(404, "작업을 찾을 수 없습니다.");
-    const t = applyAction(stateOf(snap.data()!), action, actor, Date.now());
+    const now = Date.now();
+    const t = applyAction(stateOf(snap.data()!), action, actor, now);
     if (!t.ok) throw new HttpError(409, t.error);
-    tx.update(ref, { ...t.patch, updatedAt: Date.now(), history: FieldValue.arrayUnion(t.history) });
+    const next = t.patch.status;
+    const notices: NoticePlan | null = next ? planNotices(snap.data(), next, id, now) : null;
+    tx.update(ref, { ...t.patch, ...(notices?.patch ?? {}), updatedAt: now, history: FieldValue.arrayUnion(t.history) });
+    return notices;
   });
+  if (plan) await deliver(id, plan);
+  if (action.type === "reply") await deliver(id, { reporter: replyNotice(action.text.trim()), operators: null });
 }
 
 /** 만료된 수락을 대기열로 돌린다. 돌린 개수를 돌려준다. */

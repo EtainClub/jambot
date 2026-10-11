@@ -26,6 +26,8 @@ export interface Profile {
   linkedAt: number;
   updatedAt: number;
   reportCount: number;
+  /** 알림 받는 기기의 FCM 토큰. MY에서 알림을 켜면 생긴다. */
+  pushTokens?: string[];
 }
 
 const users = () => db().collection("fc_users");

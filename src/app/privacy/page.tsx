@@ -12,7 +12,7 @@ const CONTACT = "etainclub@gmail.com";
  *
  * ★ 코드와 같이 고친다. 여기 적힌 항목은 src/lib/users.ts(fc_users·탈퇴),
  *   src/app/api/reports/route.ts(fc_reports), src/lib/ratelimit.ts(fc_counters),
- *   src/lib/check/model.ts(모델에 보내는 것)와 맞아야 한다.
+ *   src/lib/check/model.ts(모델에 보내는 것), src/app/api/my/push(알림 토큰)와 맞아야 한다.
  */
 export default function PrivacyPage() {
   return (
@@ -32,6 +32,10 @@ export default function PrivacyPage() {
             </li>
             <li>
               <b className="text-ink">남용 방지</b>: 접속 지점(IP)은 원래 주소로 되돌릴 수 없는 값(해시)으로만 남겨 시간당 제보 수를 셉니다.
+            </li>
+            <li>
+              <b className="text-ink">알림</b>: MY에서 알림을 켠 기기의 알림 토큰(기기마다 주어지는 무작위 값, 최대 5대). 끄거나
+              탈퇴하면 지웁니다.
             </li>
             <li>
               <b className="text-ink">운영자</b>: 역할과, 어떤 작업을 수락·게시·건너뛰었는지의 처리 기록.
@@ -56,7 +60,7 @@ export default function PrivacyPage() {
         <Section title="4. 맡기는 곳 (처리 위탁·국외 이전)">
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              <b className="text-ink">Google (Firebase)</b> — 로그인, 데이터와 스크린샷 저장. 저장 위치는 서울(asia-northeast3) 리전입니다.
+              <b className="text-ink">Google (Firebase)</b> — 로그인, 데이터와 스크린샷 저장, 알림 발송(Firebase Cloud Messaging). 저장 위치는 서울(asia-northeast3) 리전입니다.
             </li>
             <li>
               <b className="text-ink">Anthropic (미국)</b> — 게시물 글, 스크린샷, 적어 주신 주장을 판정 모델(Claude)에 보내 정책 주장을

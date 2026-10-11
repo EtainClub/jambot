@@ -37,6 +37,10 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: "1:817350725163:web:db7e77690e5dbdabdfa46e"
     availability: [BUILD, RUNTIME]
+  # 웹 푸시 공개 키(Firebase 콘솔 → Cloud Messaging → 웹 푸시 인증서). 공개 값이라 비밀이 아니다.
+  - variable: NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    value: "BO9CGJ8PFqqn3nyZ1DfaXX1dQqBs-iBSOHlKmo-VXqa_uuOwO94MM28NuZmvlgd7_w2qYPJpak_82PF5gjJdd9k"
+    availability: [BUILD, RUNTIME]
 
   # 비밀값은 Secret Manager를 가리킨다.
   - variable: ANTHROPIC_API_KEY
@@ -45,10 +49,10 @@ env:
   - variable: CRON_SECRET
     secret: FACTBOT_CRON_SECRET
     availability: [RUNTIME]
-  # 없으면 공백 요청 시 이슈 본문만 돌려준다(운영자가 손으로 올림).
-  # - variable: GITHUB_TOKEN
-  #   secret: FACTBOT_GITHUB_TOKEN
-  #   availability: [RUNTIME]
+  # 잼통 저장소 Issues 쓰기 권한(fine-grained). 없으면 공백 요청 시 이슈 본문만 돌려준다(운영자가 손으로 올림).
+  - variable: GITHUB_TOKEN
+    secret: FACTBOT_GITHUB_TOKEN
+    availability: [RUNTIME]
 
   - variable: FACTBASE_URL
     value: https://jamtong.kr/factbase.json

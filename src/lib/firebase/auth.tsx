@@ -36,6 +36,7 @@ export interface Profile {
   linkedAt: number;
   updatedAt: number;
   reportCount: number;
+  pushTokens?: string[];
 }
 
 export interface Me {
