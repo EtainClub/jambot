@@ -25,3 +25,12 @@ export async function getConfig(): Promise<AppConfig> {
   const snap = await db().collection("fc_config").doc("main").get();
   return { ...DEFAULTS, ...(snap.data() as Partial<AppConfig> | undefined) };
 }
+
+/** 관리자가 바꾼다. 누가 언제 바꿨는지 함께 적는다. */
+export async function updateConfig(patch: Partial<AppConfig>, by: { uid: string; name: string }): Promise<AppConfig> {
+  await db()
+    .collection("fc_config")
+    .doc("main")
+    .set({ ...patch, updatedAt: Date.now(), updatedBy: by }, { merge: true });
+  return getConfig();
+}

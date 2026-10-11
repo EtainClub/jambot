@@ -8,6 +8,13 @@ import { HowItWorks, ReportFAQ } from "@/components/HowItWorks";
 import { Button, Card, formatTime, LoadingCards, VerdictBadge } from "@/components/ui";
 import type { Verdict } from "@/lib/check/types";
 
+interface Stats {
+  reports: number;
+  checked: number;
+  posted: number;
+  waiting: number;
+}
+
 interface Posted {
   id: string;
   url: string;
@@ -25,6 +32,7 @@ interface Posted {
  */
 export default function HomePage() {
   const [posted, setPosted] = useState<Posted[] | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
 
@@ -33,7 +41,9 @@ export default function HomePage() {
     void fetch("/api/public/posted")
       .then(async (res) => {
         if (!res.ok) throw new Error(String(res.status));
-        return (await res.json()).posted as Posted[];
+        const body = (await res.json()) as { posted: Posted[]; stats?: Stats };
+        if (alive && body.stats) setStats(body.stats);
+        return body.posted;
       })
       .then((rows) => alive && setPosted(rows))
       .catch(() => alive && (setFailed(true), setPosted([])));
@@ -64,6 +74,24 @@ export default function HomePage() {
         </div>
         <HowItWorks />
       </div>
+
+      {stats ? (
+        <dl className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-stone bg-stone sm:grid-cols-4">
+          {(
+            [
+              ["제보", stats.reports],
+              ["근거와 대조한 게시물", stats.checked],
+              ["게시한 근거 댓글", stats.posted],
+              ["잼통 자료 대기", stats.waiting],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="bg-eggshell px-5 py-4">
+              <dt className="text-[12px] text-smoke">{label}</dt>
+              <dd className="mt-1 font-mono text-[26px] font-light tabular">{value.toLocaleString("ko-KR")}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
 
       <h2 className="mb-4 text-[13px] font-semibold text-smoke">최근 게시한 근거 안내</h2>
       {posted === null ? (

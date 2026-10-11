@@ -88,6 +88,12 @@ function My() {
               <span className="mt-1 block text-[13px] text-smoke">구글을 연결한 사람에게 검토자·운영 관리자·관리자 역할을 줍니다.</span>
             </Link>
           ) : null}
+          {auth.member?.role === "admin" ? (
+            <Link href="/settings" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
+              <span className="text-[15px] font-semibold">운영 설정</span>
+              <span className="mt-1 block text-[13px] text-smoke">선거 기간 차단, 오래된 게시물 기준, 운영자 하루 게시 상한을 바꿉니다.</span>
+            </Link>
+          ) : null}
           <Link href="/guide" className="block rounded-[20px] border border-stone p-5 hover:border-graphite">
             <span className="text-[15px] font-semibold">사용법</span>
             <span className="mt-1 block text-[13px] text-smoke">제보하는 법, 운영자가 댓글을 붙여넣고 게시 완료하는 법을 그림으로 봅니다.</span>

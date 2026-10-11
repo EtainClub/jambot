@@ -15,7 +15,7 @@ import type { TaskStatus } from "@/lib/tasks/transitions";
 
 import { composeComment } from "./comment";
 import { failureNote, isTransient, MAX_ATTEMPTS } from "./failure";
-import { CHECK_MODEL, extract, judge, ModelRefusal, type PostImage } from "./model";
+import { CHECK_MODEL, costUsd, emptyUsage, extract, judge, ModelRefusal, type PostImage } from "./model";
 import { COMMENTABLE, headlineVerdict, type Judgment } from "./types";
 import { validateJudgment } from "./validate";
 
@@ -151,7 +151,8 @@ export async function runCheck(shortcode: string): Promise<void> {
       return;
     }
 
-    const extraction = await extract({ caption, hints, images: await loadImages(imagePaths) });
+    const usage = emptyUsage();
+    const extraction = await extract({ caption, hints, images: await loadImages(imagePaths) }, usage);
     if (!extraction.readable && !caption) {
       await settle(shortcode, { status: "no_content", note: "스크린샷에서 글을 읽지 못했습니다." });
       return;
@@ -166,7 +167,7 @@ export async function runCheck(shortcode: string): Promise<void> {
     const candidates = candidatesFor(index, extraction.claims);
     const byAnchor = new Map<string, FactEntry>(candidates.map((c) => [c.anchor, c]));
 
-    let judgment = await judge({ contentText: extraction.contentText, claims: extraction.claims, candidates });
+    let judgment = await judge({ contentText: extraction.contentText, claims: extraction.claims, candidates }, usage);
     let errors = validateJudgment(judgment, byAnchor);
     if (errors.length) {
       judgment = await judge({
@@ -174,7 +175,7 @@ export async function runCheck(shortcode: string): Promise<void> {
         claims: extraction.claims,
         candidates,
         retryErrors: errors,
-      });
+      }, usage);
       errors = validateJudgment(judgment, byAnchor);
     }
 
@@ -195,6 +196,8 @@ export async function runCheck(shortcode: string): Promise<void> {
       candidateCount: candidates.length,
       factbaseVersion: factbase.version,
       model: CHECK_MODEL,
+      usage,
+      costUsd: costUsd(CHECK_MODEL, usage),
     };
 
     if (errors.length) {

@@ -16,6 +16,8 @@
  * 손으로 옮기는 것은 requeue뿐이다.
  */
 
+import { parseInstagramUrl } from "@/lib/instagram/url";
+
 export const TASK_STATUSES = [
   "queued",
   "claimed",
@@ -68,6 +70,8 @@ export interface Actor {
 }
 
 export interface TaskState {
+  /** 게시물 shortcode. 게시 완료 주소가 이 게시물의 것인지 본다. */
+  postId?: string;
   status: TaskStatus;
   assignee: string | null;
   expiresAt: number | null;
@@ -147,8 +151,11 @@ export function applyAction(task: TaskState, action: TaskAction, actor: Actor, n
       if (!mine) return fail("담당자만 게시 완료로 바꿀 수 있습니다.");
       const comment = action.comment.trim();
       if (!comment) return fail("게시한 댓글 내용이 필요합니다.");
-      if (!/^https?:\/\/(?:www\.|m\.)?instagram\.com\//.test(action.postedUrl.trim())) {
-        return fail("게시한 댓글의 인스타그램 주소를 넣어 주세요.");
+      // 댓글 주소(/p/<게시물>/c/<댓글>/)나 게시물 주소. 다른 게시물 주소를 잘못 붙여넣는 일을 막는다.
+      const target = parseInstagramUrl(action.postedUrl);
+      if (!target) return fail("게시한 댓글의 인스타그램 주소를 넣어 주세요.");
+      if (task.postId && target.shortcode !== task.postId) {
+        return fail("이 작업의 게시물 주소가 아닙니다. 댓글을 단 게시물의 주소를 넣어 주세요.");
       }
       return {
         ok: true,

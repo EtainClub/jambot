@@ -19,6 +19,43 @@ import { extractionSchema, judgmentSchema, type Extraction, type Judgment } from
 
 export const CHECK_MODEL = process.env.CHECK_MODEL ?? "claude-sonnet-5-5";
 
+/**
+ * 토큰 사용량. 판정 한 번(읽기 + 판정, 재시도 포함)에 든 것을 모아 fc_checks에 남긴다.
+ * 실제 건당 비용을 알아야 모델·후보 수를 숫자로 고를 수 있다.
+ */
+export interface Usage {
+  calls: number;
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+}
+
+export const emptyUsage = (): Usage => ({ calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+
+function meter(usage: Usage | undefined, u: Anthropic.Usage): void {
+  if (!usage) return;
+  usage.calls += 1;
+  usage.input += u.input_tokens;
+  usage.output += u.output_tokens;
+  usage.cacheRead += u.cache_read_input_tokens ?? 0;
+  usage.cacheWrite += u.cache_creation_input_tokens ?? 0;
+}
+
+/** 100만 토큰당 달러 (platform.claude.com 가격표, 2026-10-10 확인). 표에 없는 모델은 비용을 적지 않는다. */
+const PRICE: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 },
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+};
+
+export function costUsd(model: string, u: Usage): number | null {
+  const p = PRICE[model];
+  if (!p) return null;
+  const usd = (u.input * p.input + u.output * p.output + u.cacheRead * p.cacheRead + u.cacheWrite * p.cacheWrite) / 1_000_000;
+  return Math.round(usd * 100_000) / 100_000;
+}
+
 /** 모델이 거절하면 사람에게 넘긴다. 재시도해도 같은 답이 나온다. */
 export class ModelRefusal extends Error {}
 
@@ -34,7 +71,11 @@ const EXTRACT_SYSTEM = `당신은 인스타그램 게시물에서 글을 옮겨 
 
 - 캡션과 이미지 속 글자를 있는 그대로 옮깁니다. 고치거나 요약하지 않습니다.
 - 그중 한국 정부 정책에 관한 **사실 주장**만 따로 뽑습니다. 확인할 수 있는 내용(금액, 대상, 날짜, 시행 여부, 누가 무엇을 했다)이어야 합니다.
-- 의견, 감탄, 비난, 홍보 문구, 질문은 주장이 아닙니다.
+- 비난·비꼼·질문·제목 형식이어도, 그 말이 성립하려면 참이어야 하는 **정책에 관한 사실 전제**가 있으면 그 전제를 주장으로 뽑습니다.
+  예: "세금 걷어서 놀고먹는 사람한테 퍼준다는 정부, 이게 맞나요?" → "정부가 일하지 않는 사람에게 세금으로 현금을 지급하는 정책을 시행한다"
+  예: "이제 퇴직금도 나라가 가져가는 시대?" → "정부가 퇴직금을 관리해 퇴직자가 바로 받을 수 없게 된다"
+- 평가·감정·예측만 있고 확인할 사실이 없으면 주장이 아닙니다. 예: "무능한 정부", "나라 망한다", "또 말 바꿀 거다".
+- 정부 정책과 상관없는 내용(인물 일화, 역사, 정당 내부 일)은 뽑지 않습니다.
 - 주장은 최대 3개. 게시물의 표현을 살리되 한 문장으로 만듭니다.
 - 글을 읽을 수 없으면 readable을 false로 둡니다. 추측해서 채우지 않습니다.`;
 
@@ -42,7 +83,7 @@ export async function extract(input: {
   caption: string | null;
   hints: string[];
   images: PostImage[];
-}): Promise<Extraction> {
+}, usage?: Usage): Promise<Extraction> {
   const content: Anthropic.ContentBlockParam[] = [
     ...input.images.map(
       (img): Anthropic.ImageBlockParam => ({
@@ -68,6 +109,7 @@ export async function extract(input: {
     output_config: { effort: "low", format: zodOutputFormat(extractionSchema) },
     messages: [{ role: "user", content }],
   });
+  meter(usage, response.usage);
   if (response.stop_reason === "refusal") throw new ModelRefusal("읽기 단계에서 모델이 거절했습니다.");
   if (!response.parsed_output) throw new Error("읽기 결과를 해석하지 못했습니다.");
   return response.parsed_output;
@@ -123,7 +165,7 @@ export async function judge(input: {
   claims: string[];
   candidates: FactEntry[];
   retryErrors?: string[];
-}): Promise<Judgment> {
+}, usage?: Usage): Promise<Judgment> {
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
@@ -148,6 +190,7 @@ export async function judge(input: {
     output_config: { effort: "medium", format: zodOutputFormat(judgmentSchema) },
     messages,
   });
+  meter(usage, response.usage);
   if (response.stop_reason === "refusal") throw new ModelRefusal("판정 단계에서 모델이 거절했습니다.");
   if (!response.parsed_output) throw new Error("판정 결과를 해석하지 못했습니다.");
   return response.parsed_output;

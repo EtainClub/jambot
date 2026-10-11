@@ -22,6 +22,7 @@ const tasks = () => db().collection("fc_tasks");
 
 function stateOf(data: FirebaseFirestore.DocumentData): TaskState {
   return {
+    postId: data.postId,
     status: data.status,
     assignee: data.assignee ?? null,
     expiresAt: data.expiresAt ?? null,

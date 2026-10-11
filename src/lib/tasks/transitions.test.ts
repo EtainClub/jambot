@@ -31,7 +31,7 @@ test("제보자는 수락할 수 없다", () => {
 test("남의 작업은 고치거나 게시 완료할 수 없다", () => {
   assert.equal(applyAction(claimedByA, { type: "edit", comment: "x" }, b, 0).ok, false);
   assert.equal(
-    applyAction(claimedByA, { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/p/abc/" }, b, 0).ok,
+    applyAction(claimedByA, { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/p/abcde/" }, b, 0).ok,
     false,
   );
 });
@@ -40,7 +40,7 @@ test("게시 완료에는 인스타그램 주소가 필요하다", () => {
   assert.equal(applyAction(claimedByA, { type: "posted", comment: "x", postedUrl: "" }, a, 0).ok, false);
   const t = applyAction(
     claimedByA,
-    { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/p/abc/c/123/" },
+    { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/p/abcde/c/123/" },
     a,
     5,
   );
@@ -81,4 +81,14 @@ test("건너뛴 사람을 남긴다", () => {
   const t = applyAction(queued, { type: "skip", reason: "중복" }, a, 3);
   assert.ok(t.ok);
   assert.equal(t.patch.skippedBy, "a");
+});
+
+test("게시 완료 주소는 이 작업의 게시물이어야 한다", () => {
+  const mine: TaskState = { ...claimedByA, postId: "DXeS6JcEVKZ" };
+  const ok = applyAction(mine, { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/p/DXeS6JcEVKZ/c/18012345/" }, a, 1);
+  assert.ok(ok.ok);
+  const wrong = applyAction(mine, { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/reel/DXOJhlskeqy/" }, a, 1);
+  assert.equal(wrong.ok, false);
+  assert.match((wrong as { error: string }).error, /이 작업의 게시물/);
+  assert.equal(applyAction(mine, { type: "posted", comment: "x", postedUrl: "https://www.instagram.com/someone/" }, a, 1).ok, false);
 });
