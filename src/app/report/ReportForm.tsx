@@ -59,6 +59,25 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
     setFiles(unique.slice(0, 4));
   }
 
+  // Clipboard images (e.g. a copied screenshot) all arrive as "image.png"; give them distinct names.
+  const addFilesRef = useRef(addFiles);
+  useEffect(() => { addFilesRef.current = addFiles; });
+  useEffect(() => {
+    function onPaste(event: ClipboardEvent) {
+      const pasted = Array.from(event.clipboardData?.items ?? [])
+        .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+      if (pasted.length === 0) return;
+      event.preventDefault();
+      const stamp = Date.now();
+      addFilesRef.current(pasted.map((file, i) => new File([file], `붙여넣은 이미지 ${stamp}-${i + 1}.${file.type.split("/")[1]}`,
+        { type: file.type, lastModified: stamp })));
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy || !parsed) return;
@@ -122,7 +141,7 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
           onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}
           onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }}
           onDrop={(event) => { event.preventDefault(); addFiles(Array.from(event.dataTransfer.files)); }}>
-        <p className="mb-3 text-[13px] text-graphite">{dragging ? "여기에 놓아 첨부하세요" : "이미지를 선택하거나 여기로 끌어 놓으세요"}</p>
+        <p className="mb-3 text-[13px] text-graphite">{dragging ? "여기에 놓아 첨부하세요" : "이미지를 선택하거나 여기로 끌어 놓으세요. 복사한 이미지는 붙여넣기(Ctrl/⌘+V)로도 첨부됩니다"}</p>
         <input
           id="report-images"
           type="file"
