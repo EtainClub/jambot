@@ -454,7 +454,7 @@ SNS에 도는 정책 주장과 소문을 정책 단위로 claim·출처·소문(
 - `count`는 늘 `postIds.length`로 적는다.
 
 순환: 제보 → `out_of_scope`/`insufficient` → 공백 → 잼통 정책 팩트 등록·배포 → factbase 버전 변경 →
-`factbase-sync`가 자료 대기 작업 재판정 → 공백 해결, 작업은 게시 대기나 조치 없음으로.
+`factbase-sync`가 자료 대기 작업과 열린 공백에 든 검토 필요 작업 재판정 → 공백 해결, 작업은 게시 대기나 조치 없음으로.
 
 ## 18. 알림과 공백 이슈 (2026-10-11)
 
@@ -496,3 +496,6 @@ SNS에 도는 정책 주장과 소문을 정책 단위로 claim·출처·소문(
 - **읽기 지시문**: 비난·비꼼·질문 형식 안의 정책 사실 전제는 주장으로 뽑고, 평가·감정·예측만 있는 글은 거른다.
 - **공개 통계**: 홈에 제보 수, 근거와 대조한 게시물, 게시한 근거 댓글, 잼통 자료 대기를 숫자로만 보인다(`/api/public/posted`의 stats).
 - **오류 경보**: Cloud Monitoring 로그 경보 "잼통 신고 센터 서버 오류" — jambot 서비스에 ERROR 로그가 남으면 관리자 메일로, 30분에 한 번까지.
+- **`insufficient` 공백도 재판정**: 근거 불충분 주장은 공백에 쌓이지만 작업은 `needs_review`로 간다. factbase-sync가 `waiting_for_content`만 보던 탓에
+  잼통 이슈(#5 등)가 닫히고 0.42.0이 배포돼도 그 게시물은 0.36~0.37 판정에 머물렀다. 이제 열림·요청함 공백의 `postIds` 가운데 `needs_review`이고
+  `factbaseVersion`이 다른 작업도 함께 재판정한다. 이미 사람이 잡은 작업(claimed·posted·skipped)은 대상이 아니다.
