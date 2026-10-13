@@ -39,7 +39,7 @@ env:
     availability: [BUILD, RUNTIME]
   # 웹 푸시 공개 키(Firebase 콘솔 → Cloud Messaging → 웹 푸시 인증서). 공개 값이라 비밀이 아니다.
   - variable: NEXT_PUBLIC_FIREBASE_VAPID_KEY
-    value: "BO9CGJ8PFqqn3nyZ1DfaXX1dQqBs-iBSOHlKmo-VXqa_uuOwO94MM28NuZmvlgd7_w2qYPJpak_82PF5gjJdd9k"
+    value: "BK1X-UPXf0ZpnxZFkDXkp0k5M9IJy9GYJDKcD7iYaiHDUi9g3Lo_C_ZD92qr51GKPleruzXtK-O9oTLKuN5x9Ks"
     availability: [BUILD, RUNTIME]
 
   # 비밀값은 Secret Manager를 가리킨다.
