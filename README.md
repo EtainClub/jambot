@@ -1,4 +1,4 @@
-# 잼통 신고 센터 (insta-factbot)
+# 신통 (insta-factbot)
 
 인스타그램의 정부 정책 주장을 [잼통](https://jamtong.kr) 근거와 대조하고, 여러 운영자가 근거 안내 댓글을
 나눠 게시하는 웹앱입니다. 설계는 `docs/design.md`, 잼통에 먼저 채울 자료는 `docs/jamtong-content-gaps.md`에 있습니다.

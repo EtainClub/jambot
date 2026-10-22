@@ -17,7 +17,7 @@ const CONTACT = "etainclub@gmail.com";
 export default function PrivacyPage() {
   return (
     <Shell>
-      <Heading lede="잼통 신고 센터가 어떤 정보를 왜 모으고, 언제 지우는지 적었습니다.">개인정보 처리방침</Heading>
+      <Heading lede="신통이 어떤 정보를 왜 모으고, 언제 지우는지 적었습니다.">개인정보 처리방침</Heading>
       <div className="max-w-[40em] space-y-8 text-[15px] leading-relaxed text-graphite">
         <Section title="1. 모으는 정보">
           <ul className="list-disc space-y-1.5 pl-5">

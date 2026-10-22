@@ -60,9 +60,9 @@ export function Shell({
           <Link href="/" className="shrink-0 rounded focus-visible:outline-2 focus-visible:outline-offset-4">
             <Image
               src={logo}
-              alt="잼통 신고 센터"
-              className="h-auto w-[160px] sm:w-[180px]"
-              sizes="(min-width: 640px) 180px, 160px"
+              alt="신통"
+              className="h-auto w-[100px] sm:w-[110px]"
+              sizes="(min-width: 640px) 110px, 100px"
               loading="eager"
             />
           </Link>

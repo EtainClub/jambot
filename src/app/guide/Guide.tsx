@@ -37,7 +37,7 @@ export function Guide() {
     <div className="mx-auto max-w-3xl">
       <p className="text-[12px] font-semibold tracking-wide text-smoke">사용법</p>
       <h1 className="mt-2 text-[36px] font-light leading-[1.15] tracking-[-0.03em] sm:text-[44px]">
-        잼통 신고 센터
+        신통
         <br />
         <span className="font-semibold">이렇게 씁니다</span>
       </h1>
@@ -129,7 +129,7 @@ function ReportSteps() {
       <Step
         n={1}
         title="게시물 링크를 복사해요"
-        tip="안드로이드에서 앱을 설치했다면 공유 목록에서 바로 '잼통 신고 센터'를 고를 수 있어요."
+        tip="안드로이드에서 앱을 설치했다면 공유 목록에서 바로 '신통'을 고를 수 있어요."
         phone={
           <Phone bar={<><span>instagram</span><span>···</span></>}>
             <Body>
@@ -154,7 +154,7 @@ function ReportSteps() {
         title={<>아래 <b>제보</b> 탭을 눌러요</>}
         tip="연결해 두면 내 제보와 처리 결과가 계속 남아요."
         phone={
-          <Phone bar={<span>잼통 신고 센터</span>} tabs={["홈", "제보", "MY"]} on={1}>
+          <Phone bar={<span>신통</span>} tabs={["홈", "제보", "MY"]} on={1}>
             <Body className="items-center justify-center gap-3 text-center">
               <span className="text-[30px]">🔒</span>
               <span className="text-[12px] font-semibold">제보하려면<br />구글 계정을 연결하세요</span>

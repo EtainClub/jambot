@@ -18,7 +18,7 @@ export interface GapForIssue {
 
 export function issueBody(gap: GapForIssue): string {
   return [
-    `잼통 신고 센터가 **잼통에 근거가 없어** 판정하지 못한 주제입니다.`,
+    `신통이 **잼통에 근거가 없어** 판정하지 못한 주제입니다.`,
     "",
     `- 주제: ${gap.topic}`,
     `- 등장 게시물: ${gap.count}건`,

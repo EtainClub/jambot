@@ -42,7 +42,7 @@ export const metadata: Metadata = {
       width: 1200,
       height: 630,
       type: "image/png",
-      alt: "잼통 신고 센터 — 파란 잼통과 민트색 체크 로고",
+      alt: "신통 — 파란 잼통과 민트색 체크 로고",
     }],
   },
   twitter: {

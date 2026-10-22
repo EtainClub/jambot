@@ -1,5 +1,5 @@
 /*
- * 잼통 신고 센터 서비스 워커.
+ * 신통 서비스 워커.
  *
  * 하는 일은 하나다: 네트워크가 끊겼을 때 페이지 이동에 빈 화면 대신 안내를 보인다.
  *
@@ -12,7 +12,7 @@
 const OFFLINE_HTML = `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>연결 끊김 · 잼통 신고 센터</title>
+<title>연결 끊김 · 신통</title>
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#fdfcfc;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
@@ -23,7 +23,7 @@ const OFFLINE_HTML = `<!doctype html>
 </style></head>
 <body><main>
   <h1>인터넷 연결이 끊겼습니다</h1>
-  <p>잼통 신고 센터는 최신 작업과 판정을 보여 주기 위해 연결이 필요합니다. 연결된 뒤 다시 시도해 주세요.</p>
+  <p>신통은 최신 작업과 판정을 보여 주기 위해 연결이 필요합니다. 연결된 뒤 다시 시도해 주세요.</p>
   <button onclick="location.reload()">다시 시도</button>
 </main></body></html>`;
 
@@ -42,7 +42,7 @@ self.addEventListener("push", (event) => {
     payload = {};
   }
   const data = payload.data || payload;
-  const title = data.title || (payload.notification && payload.notification.title) || "잼통 신고 센터";
+  const title = data.title || (payload.notification && payload.notification.title) || "신통";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || (payload.notification && payload.notification.body) || "",

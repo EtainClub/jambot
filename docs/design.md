@@ -1,4 +1,4 @@
-# 잼통 신고 센터 (insta-factbot) — MVP 설계
+# 신통 (insta-factbot) — MVP 설계
 
 설계 기준일: 2026-10-08
 기준 자료: `~/devel-src/jamtong` v0.33.0

@@ -6,7 +6,7 @@ import { APP_NAME, APP_DESCRIPTION } from "@/lib/brand";
  *
  * 설치 조건(Chrome): name·short_name, start_url, display, 192px·512px PNG 아이콘,
  * 그리고 서비스 워커(public/sw.js). 아이콘이 없으면 "this app cannot be installed"가 뜬다.
- * 아이콘은 신고 센터의 파란 잼통+체크 로고다. maskable은 안드로이드가
+ * 아이콘은 신통의 파란 잼통+체크 로고다. maskable은 안드로이드가
  * 원·둥근 사각으로 잘라 써도 심볼이 남도록 중앙 안전 영역에 배치했다.
  *
  * share_target은 편의 기능이다. 안드로이드에서 앱을 설치하면 인스타그램의
@@ -18,7 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: APP_NAME,
-    short_name: "신고 센터",
+    short_name: "신통",
     description: APP_DESCRIPTION,
     start_url: "/",
     scope: "/",
