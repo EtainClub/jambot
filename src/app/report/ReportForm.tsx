@@ -135,7 +135,7 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
       <div>
         <label htmlFor="report-images" className="mb-2 block text-[13px] font-semibold">스크린샷 <span className="font-normal text-smoke">{files.length} / 4장</span></label>
         <p id="image-help" className="mb-3 text-[13px] text-smoke">
-          이미지 속 글자로 주장을 읽습니다. 게시물 본문이 보이도록 찍어 주시면 정확해집니다.
+          게시물 대표 이미지(첫 장·릴스 표지)는 자동으로 가져오니 스크린샷은 없어도 됩니다. 넘겨야 보이는 장이나 영상 속 글자는 스크린샷으로 보태 주시면 정확해집니다.
         </p>
         <div data-dragging={dragging} className="upload-zone rounded-[14px] border border-dashed border-stone bg-taupe/40 p-4 focus-within:border-navy"
           onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}

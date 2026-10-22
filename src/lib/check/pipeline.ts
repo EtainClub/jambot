@@ -11,6 +11,7 @@ import type { FactEntry } from "@/lib/factbase/types";
 import { bucket, db } from "@/lib/firebase/admin";
 import { syncGapsForPost } from "@/lib/gaps/store";
 import { fetchCaption } from "@/lib/instagram/oembed";
+import { fetchThumbnail } from "@/lib/instagram/thumbnail";
 import type { TaskStatus } from "@/lib/tasks/transitions";
 
 import { composeComment } from "./comment";
@@ -36,6 +37,7 @@ import { validateJudgment } from "./validate";
  */
 
 const MAX_IMAGES = 4;
+const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
 const PIPELINE_OWNED: ReadonlySet<TaskStatus> = new Set([
   "processing",
   "queued",
@@ -65,6 +67,19 @@ async function loadImages(paths: string[]): Promise<PostImage[]> {
       return { mediaType: mediaTypeOf(path), base64: buf.toString("base64") };
     }),
   );
+}
+
+/**
+ * 게시물 대표 이미지를 받아 두고 경로를 돌려준다. 제보자가 스크린샷을 찍지 않아도 읽을 것이 생긴다.
+ * 게시물마다 한 번만 시도한다. 제보 스크린샷이 앞서도록 뒤에 붙이므로, 스크린샷이 4장이면
+ * 대표 이미지는 판정에 쓰이지 않는다.
+ */
+async function saveThumbnail(shortcode: string, url: string): Promise<string | null> {
+  const thumbnail = await fetchThumbnail(url);
+  const path = thumbnail ? `posts/${shortcode}/thumbnail.${EXT[thumbnail.contentType]}` : null;
+  if (thumbnail && path) await bucket().file(path).save(thumbnail.buffer, { contentType: thumbnail.contentType });
+  await posts().doc(shortcode).update({ thumbnailTried: true, ...(path ? { imagePaths: FieldValue.arrayUnion(path) } : {}) });
+  return path;
 }
 
 interface Outcome {
@@ -144,6 +159,10 @@ export async function runCheck(shortcode: string): Promise<void> {
     if (caption && !post.caption) await posts().doc(shortcode).update({ caption });
     const hints: string[] = post.claimHints ?? [];
     const imagePaths: string[] = post.imagePaths ?? [];
+    if (!post.thumbnailTried) {
+      const path = await saveThumbnail(shortcode, post.url);
+      if (path) imagePaths.push(path);
+    }
 
     if (!caption && imagePaths.length === 0) {
       // 제보자가 적은 주장만으로는 판정하지 않는다. 게시물에 정말 그렇게 쓰였는지 모른다.
