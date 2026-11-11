@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { useAuth } from "@/lib/firebase/auth";
 import { atLeast, ROLE_LABEL, type OperatorRole } from "@/lib/tasks/transitions";
@@ -19,13 +20,17 @@ import logo from "../../public/brand/jamtong-report-logo.png";
  *   "public"  누구나. 익명 계정으로 둘러본다
  *   "google"  구글을 연결해야 한다. 아니면 연결 버튼을 보여 준다
  *   OperatorRole  운영자. 그 역할 이상이어야 한다
+ *
+ * share  상단 바에 이 화면 링크 공유 버튼을 띄운다. 앱(홈 화면 설치)에는 주소창이 없다
  */
 export function Shell({
   children,
   access = "public",
+  share = false,
 }: {
   children: React.ReactNode;
   access?: "public" | "google" | OperatorRole;
+  share?: boolean;
 }) {
   const auth = useAuth();
   const path = usePathname();
@@ -82,7 +87,8 @@ export function Shell({
               );
             })}
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            {share ? <ShareLink /> : null}
             {!auth.ready ? null : auth.google ? (
               <Link href="/my" className="text-[12px] text-smoke hover:text-ink">
                 {auth.me?.profile?.displayName ?? "내 계정"}
@@ -108,6 +114,42 @@ export function LinkButton({ label = "구글 계정 연결" }: { label?: string 
     <Button tone="primary" onClick={() => void linkGoogle().catch((e) => alert(e instanceof Error ? e.message : String(e)))}>
       {label}
     </Button>
+  );
+}
+
+/** 휴대폰은 공유 시트, 그 밖에는 클립보드 복사. */
+function ShareLink() {
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: document.title, url });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        // 공유 시트를 못 띄우면 복사로 넘어간다
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("이 주소를 복사해 공유하세요", url);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void share()}
+      className="ui-button rounded-full border border-stone px-3 py-1 text-[12px] font-semibold text-graphite hover:border-graphite hover:text-ink"
+      aria-label="이 화면 링크 공유"
+    >
+      {copied ? "복사했습니다" : "링크"}
+    </button>
   );
 }
 

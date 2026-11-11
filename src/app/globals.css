@@ -121,15 +121,16 @@ body {
 .nav-link:active .nav-icon { transform: scale(0.9); }
 .faq-item summary { cursor: pointer; list-style: none; }
 .faq-item summary::-webkit-details-marker { display: none; }
-.faq-item[open] .faq-answer { animation: enter-page 220ms var(--ease-out-expo) both; }
+.faq-item[open] > .faq-answer { animation: enter-page 220ms var(--ease-out-expo) both; }
 .faq-toggle { transition: transform 180ms ease; }
-.faq-item[open] .faq-toggle { transform: rotate(45deg); }
+.faq-item[open] > summary .faq-toggle { transform: rotate(45deg); }
 .form-input { transition: border-color 180ms ease, background-color 180ms ease; }
 .form-input:focus { border-color: var(--navy); background-color: #f8faff; }
 .upload-zone { transition: border-color 180ms ease, background-color 180ms ease; }
 .upload-zone[data-dragging="true"] { border-color: var(--navy); background: var(--navy-tint); }
 .skeleton { background: var(--stone); animation: skeleton-breathe 1.6s ease-in-out infinite; }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 700ms linear infinite; }
+.progress-live { animation: skeleton-breathe 1.6s ease-in-out infinite; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: skeleton-breathe 1.6s ease-in-out infinite; }
 
 @media (hover: hover) {

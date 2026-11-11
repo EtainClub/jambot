@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 
 import { Shell } from "@/components/Shell";
-import { Button, Card, ErrorLine, formatTime, StatusTag, VerdictBadge } from "@/components/ui";
+import { Button, Card, ErrorLine, formatTime, STATUS_LABEL, StatusTag, Stepper, VerdictBadge } from "@/components/ui";
 import { VERDICT_LABEL, type ClaimJudgment, type Verdict } from "@/lib/check/types";
 import type { FactEntry } from "@/lib/factbase/types";
 import { useAuth } from "@/lib/firebase/auth";
@@ -47,7 +47,7 @@ interface Detail {
 export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
   const { id } = use(params);
   return (
-    <Shell access="reviewer">
+    <Shell access="reviewer" share>
       <Task id={id} />
     </Shell>
   );
@@ -63,6 +63,8 @@ function Task({ id }: { id: string }) {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  /** 맡은 작업 안에서의 단계(1 다듬기, 2 게시, 3 기록). 서버 상태가 아니라 화면 안내용이다. */
+  const [workStep, setWorkStep] = useState(1);
 
   const fetchDetail = useCallback(
     () => api(`/api/tasks/${id}`).then(async (res) => ({ res, data: await res.json() })),
@@ -89,7 +91,7 @@ function Task({ id }: { id: string }) {
 
   const load = useCallback(async () => apply(await fetchDetail()), [fetchDetail, apply]);
 
-  async function act(body: Record<string, unknown>) {
+  async function act(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
@@ -97,8 +99,10 @@ function Task({ id }: { id: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "처리하지 못했습니다.");
       await load();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "처리하지 못했습니다.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -150,72 +154,152 @@ function Task({ id }: { id: string }) {
 
       <ErrorLine message={error} />
 
-      {/* 댓글 — 가장 먼저 해야 할 일이 맨 위에 온다 */}
+      {/* 댓글 게시 — 가장 먼저 해야 할 일이 맨 위에 온다. 단계마다 할 일 하나와 버튼 하나 */}
       {(task.draftComment || task.finalComment) && task.status !== "no_action" ? (
         <Card>
-          <h2 className="text-[13px] font-semibold text-smoke">댓글</h2>
-          <textarea
-            className="mt-3 min-h-40 w-full rounded-[4px] border border-stone bg-eggshell p-3 text-[15px] leading-relaxed disabled:bg-taupe"
-            value={comment}
-            disabled={!mine}
-            onChange={(e) => setComment(e.target.value)}
-            aria-label="댓글 내용"
+          <Stepper
+            steps={WORK_STEPS}
+            current={task.status === "posted" ? WORK_STEPS.length : mine ? workStep : 0}
+            onSelect={mine ? (i) => i > 0 && setWorkStep(i) : undefined}
+            label="작업 단계"
           />
-          <p className="mt-1 text-right text-[12px] text-ash tabular">{comment.length}자</p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {task.status === "queued" && canReview ? (
-              <Button tone="primary" disabled={busy} onClick={() => void act({ type: "claim" })}>
-                작업 수락
-              </Button>
-            ) : null}
-            {mine ? (
-              <>
-                <Button onClick={() => void copy()}>{copied ? "복사했습니다" : "댓글 복사"}</Button>
-                <Button disabled={busy} onClick={() => void act({ type: "edit", comment })}>
-                  저장
-                </Button>
-                <Button disabled={busy} onClick={() => void act({ type: "extend" })}>
-                  30분 연장
-                </Button>
-                <Button disabled={busy} onClick={() => void act({ type: "release" })}>
-                  반납
-                </Button>
-              </>
-            ) : task.status === "claimed" && isAdmin ? (
-              <Button disabled={busy} onClick={() => void act({ type: "release" })}>
-                담당 해제
-              </Button>
-            ) : null}
-          </div>
-
-          {mine ? (
-            <div className="mt-6 border-t border-stone pt-5">
-              <p className="text-[13px] text-graphite">
-                인스타그램에 실제로 댓글을 단 뒤, 그 댓글(또는 게시물) 주소를 넣고 게시 완료를 누르세요. 복사만으로는 기록되지
-                않습니다.
-              </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <div className="mt-6 border-t border-stone pt-6">
+            {task.status === "posted" ? (
+              <div className="step-detail">
+                <h2 className="text-[18px] font-semibold text-navy">✓ 게시를 마친 작업입니다</h2>
+                <p className="mt-3 whitespace-pre-wrap rounded-[10px] bg-taupe p-4 text-[14px] leading-relaxed text-graphite">{comment}</p>
+                {task.postedUrl ? (
+                  <a className="mt-3 inline-block text-[13px] underline" href={task.postedUrl} target="_blank" rel="noreferrer">
+                    인스타그램에서 게시한 댓글 보기
+                  </a>
+                ) : null}
+              </div>
+            ) : !mine ? (
+              <div className="step-detail">
+                <h2 className="text-[18px] font-semibold">
+                  {task.status === "claimed"
+                    ? `${task.assigneeName ?? "다른 운영자"}님이 처리 중입니다`
+                    : task.status === "queued"
+                      ? "이 작업을 맡아 주세요"
+                      : `지금은 수락할 수 없는 작업입니다 (${STATUS_LABEL[task.status] ?? task.status})`}
+                </h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-smoke">
+                  {task.status === "claimed"
+                    ? `${task.expiresAt ? `${formatTime(task.expiresAt)}까지 ` : ""}담당자가 있습니다. 시간이 지나면 다시 대기열로 돌아옵니다.`
+                    : task.status === "queued"
+                      ? "수락하면 30분 동안 내 작업이 됩니다. 아래 댓글 초안과 판정 근거를 읽어 보고 맡을지 정하세요."
+                      : "운영 관리자가 아래 '다른 처리'에서 대기열로 되돌리면 맡을 수 있습니다."}
+                </p>
+                <p className="mt-4 whitespace-pre-wrap rounded-[10px] bg-taupe p-4 text-[14px] leading-relaxed text-graphite">{comment}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {task.status === "queued" && canReview ? (
+                    <Button tone="primary" disabled={busy} onClick={() => void act({ type: "claim" }).then((ok) => ok && setWorkStep(1))}>
+                      작업 수락
+                    </Button>
+                  ) : null}
+                  {task.status === "claimed" && isAdmin ? (
+                    <Button disabled={busy} onClick={() => void act({ type: "release" })}>
+                      담당 해제
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : workStep === 1 ? (
+              <div className="step-detail">
+                <h2 className="text-[18px] font-semibold">댓글을 읽고 다듬으세요</h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-smoke">
+                  아래 <a href="#judgment" className="underline">판정과 근거</a>를 확인하고, 틀린 말이나 어색한 문장이 있으면 고치세요. 고칠 게 없으면 그대로 다음으로.
+                </p>
+                <textarea
+                  className="mt-4 min-h-48 w-full rounded-[4px] border border-stone bg-eggshell p-3 text-[15px] leading-relaxed"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  aria-label="댓글 내용"
+                />
+                <p className="mt-1 text-right text-[12px] text-ash tabular">{comment.length}자</p>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    tone="primary"
+                    disabled={busy || !comment.trim()}
+                    onClick={() =>
+                      void (comment === task.finalComment ? Promise.resolve(true) : act({ type: "edit", comment })).then(
+                        (ok) => ok && setWorkStep(2),
+                      )
+                    }
+                  >
+                    {comment === task.finalComment ? "다음 →" : "저장하고 다음 →"}
+                  </Button>
+                </div>
+              </div>
+            ) : workStep === 2 ? (
+              <div className="step-detail">
+                <h2 className="text-[18px] font-semibold">인스타그램에 댓글을 다세요</h2>
+                <ol className="mt-4 space-y-4">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 font-mono text-[12px] text-ash">1</span>
+                    <div className="flex-1">
+                      <Button tone="primary" onClick={() => void copy()}>
+                        {copied ? "✓ 복사했습니다" : "댓글 복사"}
+                      </Button>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 font-mono text-[12px] text-ash">2</span>
+                    <div className="flex-1">
+                      <a
+                        href={post.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ui-button inline-block rounded-full border border-stone px-4 py-2 text-[13px] font-semibold text-graphite hover:border-graphite"
+                      >
+                        인스타그램 게시물 열기 ↗
+                      </a>
+                      <p className="mt-2 text-[13px] text-smoke">게시물 댓글 칸에 붙여넣고 게시하세요.</p>
+                    </div>
+                  </li>
+                </ol>
+                <p className="mt-4 whitespace-pre-wrap rounded-[10px] bg-taupe p-4 text-[13px] leading-relaxed text-graphite">{comment}</p>
+                <div className="mt-5 flex items-center gap-2">
+                  <Button onClick={() => setWorkStep(1)}>← 이전</Button>
+                  <Button tone="primary" className="ml-auto" onClick={() => setWorkStep(3)}>
+                    댓글을 달았어요 →
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="step-detail">
+                <h2 className="text-[18px] font-semibold">게시한 주소를 남기세요</h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-smoke">
+                  인스타그램에서 내 댓글(또는 게시물)의 링크를 복사해 붙여넣으세요. 이 단계를 마쳐야 게시가 기록됩니다.
+                </p>
                 <input
-                  className="flex-1 rounded-[4px] border border-stone bg-eggshell px-3 py-2 text-[14px]"
+                  className="mt-4 w-full rounded-[4px] border border-stone bg-eggshell px-3 py-2.5 text-[14px]"
                   placeholder="https://www.instagram.com/p/…"
+                  inputMode="url"
                   value={postedUrl}
                   onChange={(e) => setPostedUrl(e.target.value)}
                   aria-label="게시한 댓글 주소"
                 />
-                <Button tone="primary" disabled={busy || !postedUrl} onClick={() => void act({ type: "posted", postedUrl, comment })}>
-                  게시 완료
-                </Button>
+                <div className="mt-5 flex items-center gap-2">
+                  <Button onClick={() => setWorkStep(2)}>← 이전</Button>
+                  <Button tone="primary" className="ml-auto" disabled={busy || !postedUrl.trim()} onClick={() => void act({ type: "posted", postedUrl, comment })}>
+                    게시 완료
+                  </Button>
+                </div>
               </div>
+            )}
+          </div>
+
+          {mine ? (
+            <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-stone pt-4 text-[12px] text-smoke">
+              <span>{task.expiresAt ? `${formatTime(task.expiresAt)}까지 내 작업` : "내 작업"}</span>
+              <Button className="ml-auto" disabled={busy} onClick={() => void act({ type: "extend" })}>
+                30분 연장
+              </Button>
+              <Button disabled={busy} onClick={() => void act({ type: "release" })}>
+                반납
+              </Button>
             </div>
-          ) : null}
-          {task.postedUrl ? (
-            <p className="mt-4 text-[13px] text-graphite">
-              게시됨:{" "}
-              <a className="underline" href={task.postedUrl} target="_blank" rel="noreferrer">
-                {task.postedUrl}
-              </a>
-            </p>
           ) : null}
         </Card>
       ) : null}
@@ -312,10 +396,13 @@ function Task({ id }: { id: string }) {
   );
 }
 
+const WORK_STEPS = ["작업 수락", "댓글 다듬기", "인스타그램 게시", "게시 기록"];
+
 function Judgment({ check }: { check: Check }) {
   const byAnchor = new Map(check.cited.map((c) => [c.anchor, c]));
   return (
-    <Card>
+    <Card className="scroll-mt-24">
+      <span id="judgment" />
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[13px] font-semibold text-smoke">판정</h2>
         <span className="font-mono text-[11px] text-ash">

@@ -27,7 +27,7 @@ import { validateJudgment } from "./validate";
  * 댓글 조립 → 저장. 어느 단계에서 멈추든 작업 상태가 그 이유를 말한다.
  *
  *   no_content           읽을 것이 없다. 판정하지 않는다
- *   no_action            정책 주장이 없거나, 전부 사실·의견이다
+ *   no_action            사실 주장이 없거나, 전부 사실·의견이다
  *   waiting_for_content  잼통에 근거가 없다. 공백으로 쌓고 잼통 갱신을 기다린다
  *   needs_review         모델 실패, 거절, 검사 탈락, 근거 불충분 — 사람이 본다
  *   queued               댓글 초안이 있다
@@ -178,7 +178,7 @@ export async function runCheck(shortcode: string): Promise<void> {
     }
     await posts().doc(shortcode).update({ contentText: extraction.contentText, updatedAt: Date.now() });
     if (extraction.claims.length === 0) {
-      await settle(shortcode, { status: "no_action", note: "정책에 관한 사실 주장이 없습니다." });
+      await settle(shortcode, { status: "no_action", note: "확인할 사실 주장이 없습니다." });
       return;
     }
 
