@@ -34,7 +34,7 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
 };
 
 /** 작업 하나에 주장이 여럿이면 가장 손이 가야 하는 것을 대표로 세운다. */
-const PRIORITY: Verdict[] = [
+export const PRIORITY: Verdict[] = [
   "false",
   "missing_context",
   "outdated",
@@ -76,6 +76,6 @@ export const extractionSchema = z.object({
   contentText: z.string().describe("게시물에서 읽은 글. 캡션과 이미지 속 글자를 옮긴 것"),
   claims: z
     .array(z.string())
-    .describe("정부 정책에 관한 사실 주장 문장. 최대 3개. 의견·감탄·홍보 문구는 빼고, 없으면 빈 배열"),
+    .describe("정부 정책, 또는 대통령·공직자에 관한 확인 가능한 사실 주장 문장. 최대 3개. 의견·감탄·홍보 문구는 빼고, 없으면 빈 배열"),
 });
 export type Extraction = z.infer<typeof extractionSchema>;
