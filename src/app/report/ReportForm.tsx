@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button, ErrorLine } from "@/components/ui";
+import { Button, ErrorLine, Stepper } from "@/components/ui";
 import { useAuth } from "@/lib/firebase/auth";
 import { parseInstagramUrl } from "@/lib/instagram/url";
 
 const input = "form-input w-full rounded-[10px] border border-stone bg-eggshell px-3 py-2.5 text-[15px]";
+const STEPS = ["게시물 주소", "스크린샷", "의심 주장", "보내기"];
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 function FilePreview({ file, remove, disabled }: { file: File; remove: () => void; disabled: boolean }) {
@@ -43,7 +44,15 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
   const [urlTouched, setUrlTouched] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [step, setStep] = useState(initialUrl && parseInstagramUrl(initialUrl) ? 1 : 0);
   const parsed = parseInstagramUrl(url);
+  const top = useRef<HTMLDivElement>(null);
+
+  function go(next: number) {
+    setStep(next);
+    setError(null);
+    top.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
 
   function addFiles(incoming: File[]) {
     setDragging(false);
@@ -80,6 +89,11 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    // 입력 칸에서 Enter를 누르면 폼이 제출된다. 마지막 단계 전이면 다음 단계로만 넘긴다.
+    if (step < STEPS.length - 1) {
+      if (step > 0 || parsed) go(step + 1);
+      return;
+    }
     if (busy || !parsed) return;
     setBusy(true);
     setError(null);
@@ -100,6 +114,7 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
       setFiles([]);
       setFileError(null);
       setUrlTouched(false);
+      setStep(0);
       void refreshMe();
     } catch (e) {
       setError(e instanceof Error ? e.message : "접수하지 못했습니다.");
@@ -108,93 +123,148 @@ export function ReportForm({ initialUrl }: { initialUrl: string }) {
     }
   }
 
-  return (
-    <form onSubmit={submit} className="mt-10 space-y-6" aria-busy={busy}>
-      <fieldset disabled={busy} className="space-y-6">
-      <legend className="sr-only">제보 내용</legend>
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-semibold">인스타그램 게시물 주소 *</span>
-        <input
-          className={input}
-          type="url"
-          required
-          inputMode="url"
-          placeholder="https://www.instagram.com/p/…"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onBlur={() => { setUrlTouched(true); setUrl(url.trim()); }}
-          maxLength={500}
-          aria-describedby="url-feedback"
-          aria-invalid={urlTouched && Boolean(url) && !parsed}
-        />
-        <span id="url-feedback" className={`mt-2 block min-h-5 text-[12px] ${parsed ? "text-navy" : urlTouched && url ? "text-burgundy" : "text-smoke"}`}>
-          {parsed ? "✓ 게시물 주소를 확인했습니다" : urlTouched && url ? "인스타그램 게시물 또는 릴스 주소를 넣어 주세요." : "인스타그램 게시물의 공유 메뉴에서 링크를 복사해 주세요."}
-        </span>
-      </label>
-
-      <div>
-        <label htmlFor="report-images" className="mb-2 block text-[13px] font-semibold">스크린샷 <span className="font-normal text-smoke">{files.length} / 4장</span></label>
-        <p id="image-help" className="mb-3 text-[13px] text-smoke">
-          게시물 대표 이미지(첫 장·릴스 표지)는 자동으로 가져오니 스크린샷은 없어도 됩니다. 넘겨야 보이는 장이나 영상 속 글자는 스크린샷으로 보태 주시면 정확해집니다.
+  if (done) {
+    return (
+      <div role="status" className="feedback-enter mt-10 rounded-[20px] border border-navy/20 bg-navy-tint p-6 sm:p-8">
+        <p className="text-[20px] font-semibold text-navy">✓ {done}</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-graphite">
+          근거와 대조한 뒤 운영자가 확인합니다. 진행 상황은 내 기록에서 단계별로 볼 수 있고, 알림을 켜 두면 결과가 나올 때 알려 드립니다.
         </p>
-        <div data-dragging={dragging} className="upload-zone rounded-[14px] border border-dashed border-stone bg-taupe/40 p-4 focus-within:border-navy"
-          onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}
-          onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }}
-          onDrop={(event) => { event.preventDefault(); addFiles(Array.from(event.dataTransfer.files)); }}>
-        <p className="mb-3 text-[13px] text-graphite">{dragging ? "여기에 놓아 첨부하세요" : "이미지를 선택하거나 여기로 끌어 놓으세요. 복사한 이미지는 붙여넣기(Ctrl/⌘+V)로도 첨부됩니다"}</p>
-        <input
-          id="report-images"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
-          onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
-          aria-describedby="image-help image-limits"
-          className="w-full text-[12px] text-smoke file:mr-3 file:rounded-full file:border file:border-stone file:bg-eggshell file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-graphite"
-        />
-        <p id="image-limits" className="mt-3 text-[11px] text-smoke">JPG·PNG·WEBP·GIF · 한 장당 최대 5MB</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link href="/my" className="ui-button rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-eggshell hover:opacity-85">
+            내 기록에서 진행 보기
+          </Link>
+          <Button onClick={() => setDone(null)}>다른 게시물 제보</Button>
         </div>
-        <ErrorLine message={fileError} />
-        {files.length > 0 ? <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="첨부한 스크린샷">
-          {files.map((file, index) => <FilePreview key={`${file.name}-${file.size}-${file.lastModified}`} file={file} disabled={busy}
-            remove={() => { setFiles((current) => current.filter((_, i) => i !== index)); setFileError(null); }} />)}
-        </ul> : null}
       </div>
+    );
+  }
 
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-semibold">어느 주장이 의심스러운가요? (선택)</span>
-        <input className={input} maxLength={500} value={claim} onChange={(e) => setClaim(e.target.value)} />
-      </label>
+  const nav = (next: React.ReactNode) => (
+    <div className="mt-8 flex items-center gap-2 border-t border-stone pt-5">
+      {step > 0 ? <Button type="button" onClick={() => go(step - 1)}>← 이전</Button> : null}
+      <div className="ml-auto">{next}</div>
+    </div>
+  );
 
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-semibold">메모 (선택)</span>
-        <textarea className={`${input} min-h-24`} maxLength={1000} value={memo} onChange={(e) => setMemo(e.target.value)} />
-        <span className="mt-1 block text-right font-mono text-[11px] text-smoke">{memo.length} / 1000</span>
-      </label>
+  return (
+    <form onSubmit={submit} className="mt-8" aria-busy={busy}>
+      <div ref={top} className="scroll-mt-24">
+        <Stepper steps={STEPS} current={step} onSelect={busy ? undefined : go} label="제보 단계" />
+      </div>
+      <fieldset disabled={busy} className="surface-card mt-6 rounded-[20px] border border-stone bg-eggshell p-5 sm:p-8">
+        <legend className="sr-only">제보 내용</legend>
+
+        {step === 0 ? (
+          <div key="url" className="step-detail">
+            <h2 className="text-[18px] font-semibold">어떤 게시물인가요?</h2>
+            <p className="mt-1 text-[13px] text-smoke">인스타그램 게시물의 공유(종이비행기) 버튼 → 링크 복사 후 붙여넣으세요.</p>
+            <input
+              className={`${input} mt-4`}
+              type="url"
+              inputMode="url"
+              autoFocus
+              placeholder="https://www.instagram.com/p/…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onBlur={() => { setUrlTouched(true); setUrl(url.trim()); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (parsed) go(1); else setUrlTouched(true); } }}
+              maxLength={500}
+              aria-label="인스타그램 게시물 주소"
+              aria-describedby="url-feedback"
+              aria-invalid={urlTouched && Boolean(url) && !parsed}
+            />
+            <span id="url-feedback" className={`mt-2 block min-h-5 text-[12px] ${parsed ? "text-navy" : urlTouched && url ? "text-burgundy" : "text-smoke"}`}>
+              {parsed ? "✓ 게시물 주소를 확인했습니다" : urlTouched && url ? "인스타그램 게시물 또는 릴스 주소를 넣어 주세요." : " "}
+            </span>
+            {nav(<Button tone="primary" type="button" disabled={!parsed} onClick={() => go(1)}>다음 →</Button>)}
+          </div>
+        ) : null}
+
+        {step === 1 ? (
+          <div key="images" className="step-detail">
+            <h2 className="text-[18px] font-semibold">스크린샷이 있나요? <span className="text-[14px] font-normal text-smoke">(선택)</span></h2>
+            <p id="image-help" className="mt-1 text-[13px] leading-relaxed text-smoke">
+              첫 장·릴스 표지는 자동으로 가져옵니다. 넘겨야 보이는 장이나 영상 속 자막이 문제라면 스크린샷을 보태 주세요. 없으면 그냥 다음으로 넘어가면 됩니다.
+            </p>
+            <div data-dragging={dragging} className="upload-zone mt-4 rounded-[14px] border border-dashed border-stone bg-taupe/40 p-4 focus-within:border-navy"
+              onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}
+              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }}
+              onDrop={(event) => { event.preventDefault(); addFiles(Array.from(event.dataTransfer.files)); }}>
+              <p className="mb-3 text-[13px] text-graphite">{dragging ? "여기에 놓아 첨부하세요" : "이미지를 선택하거나 끌어 놓으세요. 복사한 이미지는 붙여넣기(Ctrl/⌘+V)도 됩니다"}</p>
+              <input
+                id="report-images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
+                aria-label="스크린샷 첨부"
+                aria-describedby="image-help image-limits"
+                className="w-full text-[12px] text-smoke file:mr-3 file:rounded-full file:border file:border-stone file:bg-eggshell file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-graphite"
+              />
+              <p id="image-limits" className="mt-3 text-[11px] text-smoke">{files.length} / 4장 · JPG·PNG·WEBP·GIF · 한 장당 최대 5MB</p>
+            </div>
+            <ErrorLine message={fileError} />
+            {files.length > 0 ? <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="첨부한 스크린샷">
+              {files.map((file, index) => <FilePreview key={`${file.name}-${file.size}-${file.lastModified}`} file={file} disabled={busy}
+                remove={() => { setFiles((current) => current.filter((_, i) => i !== index)); setFileError(null); }} />)}
+            </ul> : null}
+            {nav(<Button tone="primary" type="button" onClick={() => go(2)}>{files.length ? "다음 →" : "건너뛰고 다음 →"}</Button>)}
+          </div>
+        ) : null}
+
+        {step === 2 ? (
+          <div key="claim" className="step-detail">
+            <h2 className="text-[18px] font-semibold">어느 말이 의심스러운가요? <span className="text-[14px] font-normal text-smoke">(선택)</span></h2>
+            <p className="mt-1 text-[13px] text-smoke">게시물 속 문장을 그대로 옮기면 확인이 빨라집니다. 예: “이재명은 대장동 범죄의 몸통”</p>
+            <input className={`${input} mt-4`} maxLength={500} value={claim} onChange={(e) => setClaim(e.target.value)} aria-label="의심스러운 주장"
+              placeholder="의심스러운 문장" />
+            <label className="mt-5 block">
+              <span className="mb-2 block text-[13px] font-semibold">운영자에게 남길 메모 <span className="font-normal text-smoke">(선택)</span></span>
+              <textarea className={`${input} min-h-24`} maxLength={1000} value={memo} onChange={(e) => setMemo(e.target.value)} />
+              <span className="mt-1 block text-right font-mono text-[11px] text-smoke">{memo.length} / 1000</span>
+            </label>
+            {nav(<Button tone="primary" type="button" onClick={() => go(3)}>다음 →</Button>)}
+          </div>
+        ) : null}
+
+        {step === 3 ? (
+          <div key="confirm" className="step-detail">
+            <h2 className="text-[18px] font-semibold">이대로 보낼까요?</h2>
+            <dl className="mt-4 divide-y divide-stone rounded-[14px] border border-stone text-[14px]">
+              {(
+                [
+                  ["게시물", url, 0],
+                  ["스크린샷", files.length ? `${files.length}장` : "없음 (대표 이미지 자동)", 1],
+                  ["의심 주장", claim || "적지 않음", 2],
+                  ["메모", memo || "적지 않음", 2],
+                ] as const
+              ).map(([k, v, at]) => (
+                <div key={k} className="flex items-start gap-3 px-4 py-3">
+                  <dt className="w-20 shrink-0 text-smoke">{k}</dt>
+                  <dd className="min-w-0 flex-1 break-all">{v}</dd>
+                  <button type="button" className="shrink-0 text-[12px] text-smoke underline" onClick={() => go(at)}>고치기</button>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 text-[12px] leading-relaxed text-smoke">
+              제보하면 주소·주장·메모·스크린샷과 내 계정이 함께 저장됩니다. 게시물 글·스크린샷·주장은 판정을 위해 AI 모델(Anthropic, 미국)로
+              보내집니다. 이메일과 메모는 보내지 않습니다. 남용을 막기 위해 접속 지점은 되돌릴 수 없는 값(해시)으로만 남깁니다. 내 기록에서
+              언제든 확인하고 탈퇴할 수 있습니다.{" "}
+              <Link href="/privacy" className="underline underline-offset-2">
+                개인정보 처리방침
+              </Link>
+            </p>
+            <ErrorLine message={error} />
+            {nav(
+              <Button tone="primary" type="submit" disabled={busy || !parsed}>
+                {busy ? <span className="spinner" aria-hidden="true" /> : null}
+                {busy ? "보내는 중…" : "제보 보내기"}
+              </Button>,
+            )}
+          </div>
+        ) : null}
       </fieldset>
-
-      <p className="text-[12px] leading-relaxed text-smoke">
-        제보하면 주소·주장·메모·스크린샷과 내 계정이 함께 저장됩니다. 게시물 글·스크린샷·주장은 판정을 위해 AI 모델(Anthropic, 미국)로
-        보내집니다. 이메일과 메모는 보내지 않습니다. 남용을 막기 위해 접속 지점은 되돌릴 수 없는 값(해시)으로만 남깁니다. 내 기록에서
-        언제든 확인하고 탈퇴할 수 있습니다.{" "}
-        <Link href="/privacy" className="underline underline-offset-2">
-          개인정보 처리방침
-        </Link>
-      </p>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button tone="primary" type="submit" disabled={busy || !parsed}>
-          {busy ? <span className="spinner" aria-hidden="true" /> : null}
-          {busy ? "보내는 중…" : "제보하기"}
-        </Button>
-        <Link href="/my" className="text-[13px] text-smoke underline">
-          내 제보 보기
-        </Link>
-      </div>
-      <ErrorLine message={error} />
-      {done ? <div role="status" className="feedback-enter rounded-[14px] border border-navy/20 bg-navy-tint p-4">
-        <p className="text-[14px] font-semibold text-navy">✓ {done}</p>
-        <Link href="/my" className="ui-button mt-2 text-[13px] text-navy underline underline-offset-4">내 기록에서 처리 결과 보기 →</Link>
-      </div> : null}
     </form>
   );
 }

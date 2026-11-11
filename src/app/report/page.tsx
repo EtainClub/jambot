@@ -20,10 +20,9 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   return (
     <Shell access="google">
       <div className="mx-auto max-w-xl">
-        <h1 className="text-[32px] font-light leading-tight tracking-[-0.02em]">정책 주장 제보</h1>
+        <h1 className="text-[32px] font-light leading-tight tracking-[-0.02em]">게시물 제보</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-graphite">
-          정부 정책에 대해 사실과 다르게 보이는 인스타그램 게시물을 알려 주세요. 잼통의 근거 자료와 대조한 뒤 운영자가
-          확인합니다. 처리 결과는 내 기록에서 볼 수 있습니다.
+          정부 정책이나 대통령에 대해 사실과 다르게 보이는 인스타그램 게시물을 알려 주세요. 네 단계면 끝납니다.
         </p>
         <ReportForm initialUrl={shared} />
       </div>

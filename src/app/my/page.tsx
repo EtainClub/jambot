@@ -77,7 +77,7 @@ function My() {
 
   return (
     <div className="space-y-12">
-      <Heading lede="내 계정에 저장된 정보와 내가 한 일입니다.">내 기록</Heading>
+      <Heading lede="내가 한 제보가 지금 어느 단계인지 봅니다. 제보를 누르면 운영자 답변과 게시한 근거 안내가 펼쳐집니다.">내 기록</Heading>
       <Dashboard member={Boolean(auth.member)} />
       <section>
         <h2 className="mb-4 text-[20px] font-light tracking-[-0.01em]">바로가기</h2>
@@ -221,48 +221,91 @@ function GroupTitle({ title, count }: { title: string; count: number }) {
   );
 }
 
-function ReportRow({ r }: { r: MyReport }) {
-  return (
-    <div className="py-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${r.outcome.stage === "done" ? "bg-ink text-eggshell" : "bg-taupe text-graphite"}`}
-        >
-          {r.outcome.label}
-        </span>
-        <VerdictBadge verdict={r.outcome.verdict} />
-        <a href={r.url} target="_blank" rel="noreferrer" className="font-mono text-[12px] text-smoke underline">
-          {r.shortcode}
-        </a>
-        <span className="ml-auto text-[12px] text-ash tabular">{formatTime(r.createdAt)}</span>
-      </div>
-      {r.claim ? <p className="mt-3 text-[14px]">“{r.claim}”</p> : null}
-      {r.memo ? <p className="mt-1 text-[13px] text-smoke">메모: {r.memo}</p> : null}
-      {r.imageCount ? <p className="mt-1 text-[12px] text-ash">스크린샷 {r.imageCount}장</p> : null}
+const PROGRESS = ["접수", "근거 대조", "운영자 확인", "결과"];
+const PROGRESS_AT: Record<Outcome["stage"], number> = { checking: 1, reviewing: 2, waiting: 2, done: 3 };
 
-      {r.outcome.comment ? (
-        <div className="mt-3 rounded-[10px] bg-taupe/60 p-3">
-          <h3 className="text-[12px] font-semibold text-smoke">게시한 근거 안내</h3>
-          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.comment}</p>
-          {r.outcome.postedUrl ? (
-            <a href={r.outcome.postedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] text-smoke underline">
-              인스타그램에서 보기
-            </a>
-          ) : null}
+/** 제보 하나가 어디까지 왔는지. 다 끝나면 네 칸이 모두 찬다. */
+function Progress({ outcome }: { outcome: Outcome }) {
+  const at = PROGRESS_AT[outcome.stage];
+  const done = outcome.stage === "done";
+  return (
+    <div className="mt-2">
+      <div className="flex gap-1" aria-hidden="true">
+        {PROGRESS.map((name, i) => (
+          <span
+            key={name}
+            className={`h-1.5 flex-1 rounded-full ${i < at || done ? "bg-navy" : i === at ? (outcome.stage === "waiting" ? "bg-pending" : "progress-live bg-navy/50") : "bg-stone"}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-[12px] text-graphite">
+        <span className="sr-only">진행 단계 {done ? 4 : at + 1} / 4: </span>
+        {done ? `✓ ${outcome.label}` : `${PROGRESS[at]} · ${outcome.label}`}
+      </p>
+    </div>
+  );
+}
+
+function ReportRow({ r }: { r: MyReport }) {
+  const hasDetail = Boolean(r.memo || r.imageCount || r.outcome.comment || r.outcome.reply || r.outcome.stage === "waiting");
+  const head = (
+    <div>
+      <div className="flex items-baseline gap-2">
+        <p className="min-w-0 flex-1 text-[14px] font-semibold leading-relaxed">{r.claim ? `“${r.claim}”` : `게시물 ${r.shortcode}`}</p>
+        <span className="shrink-0 text-[12px] text-ash tabular">{formatTime(r.createdAt)}</span>
+      </div>
+      <Progress outcome={r.outcome} />
+      {r.outcome.verdict ? (
+        <div className="mt-2">
+          <VerdictBadge verdict={r.outcome.verdict} />
         </div>
-      ) : null}
-      {r.outcome.reply ? (
-        <div className="mt-3 rounded-[10px] bg-taupe/60 p-3">
-          <h3 className="text-[12px] font-semibold text-smoke">
-            운영자 답변 <span className="font-normal text-ash tabular">{formatTime(r.outcome.replyAt)}</span>
-          </h3>
-          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.reply}</p>
-        </div>
-      ) : null}
-      {r.outcome.stage === "waiting" ? (
-        <p className="mt-3 text-[13px] text-smoke">잼통에 아직 근거가 없는 주제입니다. 자료가 등록되면 다시 확인합니다.</p>
       ) : null}
     </div>
+  );
+  if (!hasDetail) {
+    return (
+      <div className="py-4">
+        {head}
+        <a href={r.url} target="_blank" rel="noreferrer" className="mt-2 inline-block font-mono text-[12px] text-smoke underline">
+          원 게시물 {r.shortcode}
+        </a>
+      </div>
+    );
+  }
+  return (
+    <Fold className="py-4" summary={head}>
+      <div className="mt-3 space-y-3">
+        {r.outcome.reply ? (
+          <div className="rounded-[10px] bg-navy-tint p-3">
+            <h3 className="text-[12px] font-semibold text-navy">
+              운영자 답변 <span className="font-normal text-smoke tabular">{formatTime(r.outcome.replyAt)}</span>
+            </h3>
+            <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{r.outcome.reply}</p>
+          </div>
+        ) : null}
+        {r.outcome.comment ? (
+          <div className="rounded-[10px] bg-taupe/60 p-3">
+            <h3 className="text-[12px] font-semibold text-smoke">게시한 근거 안내</h3>
+            <p className="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-graphite">{r.outcome.comment}</p>
+            {r.outcome.postedUrl ? (
+              <a href={r.outcome.postedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] text-smoke underline">
+                인스타그램에서 보기
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+        {r.outcome.stage === "waiting" ? (
+          <p className="text-[13px] text-smoke">잼통에 아직 근거가 없는 주제입니다. 자료가 등록되면 자동으로 다시 확인합니다.</p>
+        ) : null}
+        <div className="text-[12px] text-smoke">
+          {r.memo ? <p>내 메모: {r.memo}</p> : null}
+          {r.imageCount ? <p>스크린샷 {r.imageCount}장</p> : null}
+          <a href={r.url} target="_blank" rel="noreferrer" className="mt-1 inline-block font-mono underline">
+            원 게시물 {r.shortcode}
+          </a>
+        </div>
+      </div>
+    </Fold>
   );
 }
 

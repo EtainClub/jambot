@@ -130,3 +130,61 @@ export function formatTime(ms: number | null | undefined): string {
   if (!ms) return "";
   return new Date(ms).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
+/**
+ * 단계 표시. 지금 어디쯤인지와 남은 단계를 숫자 원과 이름으로 보여 준다.
+ * current는 0부터. steps.length와 같으면 모두 끝난 상태다.
+ * onSelect를 주면 지난 단계로 돌아갈 수 있다(앞으로 건너뛰지는 못한다).
+ */
+export function Stepper({
+  steps,
+  current,
+  onSelect,
+  label = "진행 단계",
+}: {
+  steps: string[];
+  current: number;
+  onSelect?: (index: number) => void;
+  label?: string;
+}) {
+  return (
+    <ol className="flex items-start" aria-label={label}>
+      {steps.map((name, i) => {
+        const done = i < current;
+        const active = i === current;
+        const dot = (
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold tabular ${
+              done ? "bg-navy text-eggshell" : active ? "border-2 border-navy bg-navy-tint text-navy" : "border border-stone bg-eggshell text-ash"
+            }`}
+          >
+            {done ? "✓" : i + 1}
+          </span>
+        );
+        const text = (
+          <span className={`mt-1.5 block text-center text-[11px] leading-tight sm:text-[12px] ${active ? "font-semibold text-ink" : done ? "text-graphite" : "text-ash"}`}>
+            {name}
+          </span>
+        );
+        return (
+          <li key={name} className="relative flex flex-1 flex-col items-center" aria-current={active ? "step" : undefined}>
+            {i > 0 ? (
+              <span aria-hidden="true" className={`absolute top-3.5 right-1/2 left-[-50%] -z-0 h-px ${i <= current ? "bg-navy" : "bg-stone"}`} />
+            ) : null}
+            {done && onSelect ? (
+              <button type="button" onClick={() => onSelect(i)} className="relative z-10 flex flex-col items-center" aria-label={`${name} 단계로 돌아가기`}>
+                {dot}
+                {text}
+              </button>
+            ) : (
+              <span className="relative z-10 flex flex-col items-center bg-transparent">
+                {dot}
+                {text}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
