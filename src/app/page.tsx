@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 
 import { Shell } from "@/components/Shell";
 import { HowItWorks, ReportFAQ } from "@/components/HowItWorks";
-import { Button, Card, formatTime, LoadingCards, VerdictBadge } from "@/components/ui";
-import type { Verdict } from "@/lib/check/types";
+import { Button, Card, Fold, formatTime, LoadingCards, VerdictBadge } from "@/components/ui";
+import { PRIORITY, type Verdict } from "@/lib/check/types";
 
 interface Stats {
   reports: number;
@@ -20,6 +20,8 @@ interface Posted {
   url: string;
   verdict: Verdict | null;
   comment: string | null;
+  /** 댓글이 바로잡은 게시물 속 주장. 예전 기록에는 없을 수 있다 */
+  claims?: string[];
   postedUrl: string | null;
   postedAt: number | null;
 }
@@ -108,27 +110,81 @@ export default function HomePage() {
           <Link href="/report" className="ui-button mt-4 text-[13px] font-semibold underline underline-offset-4">게시물 제보하기 <span aria-hidden="true">→</span></Link>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {posted.map((p) => (
-            <Card key={p.id}>
-              <div className="flex flex-wrap items-center gap-2">
-                <VerdictBadge verdict={p.verdict} />
-                <a href={p.url} target="_blank" rel="noreferrer" className="font-mono text-[12px] text-smoke underline">
-                  {p.id}
-                </a>
-                <span className="ml-auto text-[12px] text-ash tabular">{formatTime(p.postedAt)}</span>
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">{p.comment}</p>
-              {p.postedUrl ? (
-                <a href={p.postedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-[12px] text-smoke underline">
-                  인스타그램에서 보기
-                </a>
-              ) : null}
-            </Card>
-          ))}
-        </div>
+        <PostedGroups posted={posted} />
       )}
       <ReportFAQ />
     </Shell>
+  );
+}
+
+/** 판정 종류별로 접어 둔다. 손이 더 가는 판정(사실과 다름)이 위. 처음에는 모두 닫아 종류와 건수만 보인다. */
+function PostedGroups({ posted }: { posted: Posted[] }) {
+  const groups = new Map<Verdict | null, Posted[]>();
+  for (const p of posted) groups.set(p.verdict, [...(groups.get(p.verdict) ?? []), p]);
+  const order: (Verdict | null)[] = [...PRIORITY, null].filter((v) => groups.has(v));
+
+  return (
+    <div className="divide-y divide-stone rounded-[20px] border border-stone bg-eggshell px-5 sm:px-6">
+      {order.map((verdict) => {
+        const rows = groups.get(verdict) ?? [];
+        return (
+          <Fold
+            key={verdict ?? "none"}
+            className="py-4"
+            summary={
+              <span className="flex items-center gap-2">
+                {verdict ? <VerdictBadge verdict={verdict} /> : <span className="text-[14px] font-semibold">판정 없음</span>}
+                <span className="font-mono text-[12px] text-smoke tabular">{rows.length}건</span>
+              </span>
+            }
+          >
+            <div className="mt-2 divide-y divide-stone border-t border-stone">
+              {rows.map((p) => (
+                <PostedCard key={p.id} p={p} />
+              ))}
+            </div>
+          </Fold>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 주장만 보이고, 누르면 근거 안내 댓글과 원 게시물 링크가 펼쳐진다. */
+function PostedCard({ p }: { p: Posted }) {
+  // 판정 기록이 없는 옛 게시 건은 주장 대신 댓글 첫 문장을 제목으로 쓴다.
+  const fallback = p.comment?.replace(/^\[잼통 근거 안내\]\s*/, "").split(/(?<=다\.)\s/)[0] ?? p.id;
+  return (
+    <Fold
+      className="py-4"
+      summary={
+        <>
+          {p.claims?.length ? (
+            <ul className="space-y-1 text-[14px] font-semibold leading-relaxed">
+              {p.claims.map((c) => (
+                <li key={c}>“{c}”</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[14px] font-semibold leading-relaxed">{fallback}</p>
+          )}
+          <p className="mt-1 text-[12px] text-ash tabular">{formatTime(p.postedAt)}</p>
+        </>
+      }
+    >
+      <div className="mt-3 rounded-[10px] bg-taupe px-4 py-3">
+        <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-graphite">{p.comment}</p>
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-smoke">
+          <a href={p.url} target="_blank" rel="noreferrer" className="underline">
+            원 게시물 <span className="font-mono">{p.id}</span>
+          </a>
+          {p.postedUrl ? (
+            <a href={p.postedUrl} target="_blank" rel="noreferrer" className="underline">
+              인스타그램에서 보기
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </Fold>
   );
 }
